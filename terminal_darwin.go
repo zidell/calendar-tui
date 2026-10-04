@@ -56,3 +56,11 @@ func termFontSize() float64 {
 func hideWindow() {
 	tellMyTab("set visible of w to false\n\t\t\t\treturn")
 }
+
+// windowIsFront는 Terminal이 맨 앞 앱이고 내 탭이 맨 앞 창의 보이는 탭인지. 시작할 때 포커스 상태를 알아내는 데 쓴다
+// (Terminal은 포커스가 바뀔 때만 알려 줘서, 이미 포커스된 창에서 시작하면 신호가 없다).
+func windowIsFront() bool {
+	out, ok := tellMyTab(`if frontmost and index of w is 1 and selected of t then return "1"
+				return "0"`)
+	return ok && out == "1"
+}

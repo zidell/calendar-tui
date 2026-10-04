@@ -16,11 +16,13 @@ func imeFor(text bool) {
 	}
 	if text {
 		if imeUser != "" && cur != imeUser {
+			logLine("ime → " + imeUser)
 			imeSelect(imeUser)
 		}
 		return
 	}
 	if cur != ascii {
+		logLine("ime " + cur + " → " + ascii)
 		imeUser = cur
 		imeSelect(ascii)
 	}
@@ -31,4 +33,29 @@ func imeRestore() {
 	if imeUser != "" && imeCurrent() != imeUser {
 		imeSelect(imeUser)
 	}
+}
+
+// imeForceASCII는 영문으로 다시 맞춘다. 이미 영문이어도 한글 → 영문으로 한 번 바꿔 준다.
+// 구름은 시스템에 영문(Gureum.system)으로 등록된 채 내부는 한글 모드로 남아 키를 조합하는 때가 있다
+// (키 로그: 한글이 들어오는데 현재 입력 소스는 영문으로 보고됨, 2026-10-04). 같은 소스를 다시 고르면 무시하므로 바꿔 준다.
+func imeForceASCII() {
+	cur, ascii := imeCurrent(), imeASCII()
+	if cur == "" || ascii == "" {
+		return
+	}
+	other := imeUser
+	if other == "" || other == ascii {
+		other = cur
+	}
+	if other == ascii { // 사용자 입력 소스를 아직 모르면 켜져 있는 영문 아닌 입력 소스(한글 등)를 거쳐 간다
+		other = imeOther()
+	}
+	if other != "" && other != ascii {
+		imeSelect(other)
+	}
+	imeSelect(ascii)
+	if other != ascii && other != cur {
+		imeUser = other
+	}
+	logLine("ime force " + other + " → " + ascii)
 }

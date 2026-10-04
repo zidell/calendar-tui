@@ -69,6 +69,7 @@ type model struct {
 	reload     bool // 새 빌드를 감지해 종료 → 새 실행 파일로 다시 시작
 	imeText    bool // 마지막으로 맞춘 입력 소스가 글자 입력용인지
 	imeSynced  bool
+	focused    bool // Terminal 창에 포커스가 있는지(포커스 보고)
 }
 
 type (
@@ -94,7 +95,14 @@ func newModel(b backend, cfg *settings) model {
 }
 
 // Init은 창 제목을 정한다. 앱 실행기(Calendar TUI.app)가 이 제목으로 떠 있는 창을 찾는다.
-func (m model) Init() tea.Cmd { return tea.Batch(refreshTick(), tea.SetWindowTitle(windowTitle())) }
+func (m model) Init() tea.Cmd {
+	return tea.Batch(refreshTick(), tea.SetWindowTitle(windowTitle()), func() tea.Msg {
+		if windowIsFront() { // 이미 포커스된 창에서 시작하면 Terminal이 알려 주지 않으므로 직접 묻는다
+			return tea.FocusMsg{}
+		}
+		return nil
+	})
+}
 
 // windowTitle은 다른 창 이름(폴더명 calendar-tui 등)과 겹치지 않게 ▦를 붙인다. 실행기는 두 언어 제목을 모두 찾는다.
 func windowTitle() string { return L("▦ 캘린더", "▦ Calendar") }
@@ -147,17 +155,63 @@ func (m model) textInput() bool {
 
 // Update는 처리 뒤 입력 소스를 화면에 맞춘다(단축키 화면은 영문, 글자 칸은 원래 입력 소스).
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if _, ok := msg.(tea.FocusMsg); ok { // 다른 창에서 한글로 바꾸고 돌아왔을 수 있다. 일정도 한 번 다시 읽는다(로컬 DB)
-		m.imeSynced = false
+	switch msg := msg.(type) {
+	case tea.FocusMsg: // 다른 창에서 한글로 바꾸고 돌아왔을 수 있다. 일정도 한 번 다시 읽는다(로컬 DB)
+		logLine("focus in")
+		tellLauncher("focus 1")
+		m.imeSynced, m.focused = false, true
 		m.db.invalidate()
+		// macOS가 창을 활성화한 직후 입력 소스를 한글로 되돌리는 일이 있다(키 로그로 확인: focus in 때는 영문이었는데
+		// 곧 한글이 되어 구름이 키를 조합으로 붙잡음 → 앱에 키가 안 옴). 잠시 뒤 몇 번 더 확인한다(포커스 때만, 폴링 아님).
+		nm, cmd := m.update(msg)
+		mm := nm.(model)
+		mm.imeSynced = false
+		return mm.syncIME(), tea.Batch(cmd, imeRecheck(150*time.Millisecond, true), imeRecheck(500*time.Millisecond, false), imeRecheck(time.Second, false))
+	case tea.BlurMsg:
+		logLine("focus out")
+		tellLauncher("focus 0")
+		m.focused = false
+	case cmdKeyMsg:
+		return m.cmdKey(msg.key)
+	case imeCheckMsg:
+		if !m.focused {
+			return m, nil
+		}
+		if msg.force && !m.textInput() { // 포커스 직후 한 번은 영문이어도 구름 상태를 다시 맞춘다
+			imeForceASCII()
+			m.imeText, m.imeSynced = false, true
+			return m, nil
+		}
+		m.imeSynced = false
+		return m.syncIME(), nil
+	case tea.KeyMsg:
+		// 단축키 화면인데 한글이 들어왔다 = 앱이 모르는 사이 입력 소스가 한글로 바뀌었다(포커스 신호가 안 왔거나
+		// 사용자가 바꿈). 그 자리에서 영문으로 되돌리고 이 키는 버린다. 다음 키부터 단축키가 먹는다.
+		if !m.textInput() && hasHangul(msg.Runes) {
+			logKey(msg, m.top())
+			logLine("hangul on shortcut screen → ascii")
+			imeForceASCII()
+			m.imeText, m.imeSynced = false, true
+			return m, nil
+		}
 	}
 	nm, cmd := m.update(msg)
-	mm := nm.(model)
-	if text := mm.textInput(); !mm.imeSynced || text != mm.imeText {
+	return nm.(model).syncIME(), cmd
+}
+
+// syncIME는 입력 소스를 지금 화면에 맞춘다(바뀌었거나 다시 맞추라고 표시됐을 때만).
+func (m model) syncIME() model {
+	if text := m.textInput(); !m.imeSynced || text != m.imeText {
 		imeFor(text)
-		mm.imeText, mm.imeSynced = text, true
+		m.imeText, m.imeSynced = text, true
 	}
-	return mm, cmd
+	return m
+}
+
+type imeCheckMsg struct{ force bool }
+
+func imeRecheck(d time.Duration, force bool) tea.Cmd {
+	return tea.Tick(d, func(time.Time) tea.Msg { return imeCheckMsg{force} })
 }
 
 func (m model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -279,10 +333,9 @@ func (m model) updateCal(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "shift+down", "shift+right", "alt+down", "alt+right", "alt+f", "]", "pgdown", "n", "tab":
 		return m.step(1), nil
 	case "v":
-		m.view = (m.view + 1) % viewCount
-		m.db.cfg.View = viewNames[m.view]
-		m.db.cfg.save()
-		return m, nil
+		return m.setView((m.view + 1) % viewCount), nil
+	case "1", "2", "3": // 1 월간 · 2 주간 · 3 목록(v 순서와 같음). Cmd+숫자도 같다(실행기)
+		return m.setView(map[string]int{"1": vMonth, "2": vWeek, "3": vAgenda}[k.String()]), nil
 	case "t":
 		return m.move(m.today), nil
 	case "r":
@@ -686,6 +739,10 @@ func main() {
 	}
 	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithReportFocus(), tea.WithMouseCellMotion())
 	go watchSelf(p)
+	if !*useMock {
+		listenCmdKeys(p)
+		defer tellLauncher("focus 0")
+	}
 	go func() {
 		for range storeChanges {
 			p.Send(changedMsg{})
@@ -798,4 +855,43 @@ func (m model) quickAction(b int) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	return m.commit(e, spanThis)
+}
+
+// hasHangul은 한글 자모·음절이 섞였는지.
+func hasHangul(rs []rune) bool {
+	for _, r := range rs {
+		if (r >= 0x1100 && r <= 0x11FF) || (r >= 0x3130 && r <= 0x318F) || (r >= 0xAC00 && r <= 0xD7A3) {
+			return true
+		}
+	}
+	return false
+}
+
+// cmdKeyMsg는 실행기가 넘긴 Cmd+글자(ipc_unix.go). 한글 상태에서도 오므로 단축키를 확실히 쓸 수 있다.
+type cmdKeyMsg struct{ key string }
+
+// cmdKey: Cmd+글자 = 그 글자 단축키. 앱처럼 Cmd+Q·Cmd+W는 종료, Cmd+F는 검색, Cmd+,는 설정.
+// 글자 칸에서는 무시한다(글자가 칸에 들어가지 않게).
+func (m model) cmdKey(k string) (tea.Model, tea.Cmd) {
+	logLine("cmd+" + k)
+	switch k {
+	case "q", "w":
+		return m, tea.Quit
+	case "f":
+		k = "/"
+	case ",":
+		k = "s"
+	}
+	if m.textInput() {
+		return m, nil
+	}
+	return m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(k)})
+}
+
+// setView는 보기를 바꾸고 기억한다(state.json).
+func (m model) setView(v int) model {
+	m.view = v
+	m.db.cfg.View = viewNames[v]
+	m.db.cfg.save()
+	return m
 }

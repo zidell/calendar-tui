@@ -66,12 +66,14 @@ cd calendar-tui && scripts/package.sh --install
 | Calendar | `← ↑ ↓ →` / `hjkl` | Move by a day / a week (in Agenda, `↑ ↓` also move by a day) |
 | | `[` `]` (`Tab` `Shift+Tab`, `p` `n`, PgUp/PgDn, `Shift`/`Option`+arrows) | Previous / next month (Month) or week (Week, Agenda) |
 | | `v` | Switch view: Month → Week → Agenda |
+| | `1` `2` `3` (`Cmd+1` `Cmd+2` `Cmd+3`) | Month · Week · Agenda directly |
 | | `a` | Quick add |
 | | `/` | Search |
 | | `g` | Go to a month (`2026-12`, `202612`, `12` = this year, `2027` = same month) |
 | | `t` | Today |
 | | `r` | Refresh |
 | | `s` | Settings |
+| | `Cmd+letter` | Same as the plain shortcut (works even with a Korean input method). `Cmd+F` search, `Cmd+,` settings, `Cmd+Q`/`Cmd+W` quit. Only when launched as the app (Dock) |
 | | `Cmd+H` · `Ctrl+H` | Hide just the calendar window (other Terminal windows stay). Click Calendar TUI in the Dock or pick it with Cmd+Tab to bring it back. `Cmd+H` works when launched as the app (Dock) |
 | | `Enter` | That day's events |
 | | `q` | Quit |

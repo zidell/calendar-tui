@@ -29,6 +29,23 @@ static char *imeASCIIID(void) {
 	return r;
 }
 
+// imeOtherID는 켜져 있는 키보드 입력 소스 중 영문이 아닌 첫 것(한글 등). 영문으로 강제 전환할 때 거쳐 갈 곳.
+static char *imeOtherID(void) {
+	const void *k[] = {kTISPropertyInputSourceCategory, kTISPropertyInputSourceIsSelectCapable};
+	const void *v[] = {kTISCategoryKeyboardInputSource, kCFBooleanTrue};
+	CFDictionaryRef q = CFDictionaryCreate(NULL, k, v, 2, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+	CFArrayRef list = TISCreateInputSourceList(q, false);
+	char *r = NULL;
+	for (CFIndex i = 0; list && i < CFArrayGetCount(list) && !r; i++) {
+		TISInputSourceRef s = (TISInputSourceRef)CFArrayGetValueAtIndex(list, i);
+		CFBooleanRef ascii = TISGetInputSourceProperty(s, kTISPropertyInputSourceIsASCIICapable);
+		if (ascii && !CFBooleanGetValue(ascii)) r = sourceID(s);
+	}
+	if (list) CFRelease(list);
+	CFRelease(q);
+	return r;
+}
+
 static void imeSelectID(const char *id) {
 	CFStringRef key = CFStringCreateWithCString(NULL, id, kCFStringEncodingUTF8);
 	CFDictionaryRef q = CFDictionaryCreate(NULL, (const void **)&kTISPropertyInputSourceID, (const void **)&key, 1,
@@ -60,6 +77,7 @@ func goStr(p *C.char) string {
 
 func imeCurrent() string { return goStr(C.imeCurrentID()) }
 func imeASCII() string   { return goStr(C.imeASCIIID()) }
+func imeOther() string   { return goStr(C.imeOtherID()) }
 
 func imeSelect(id string) {
 	cs := C.CString(id)

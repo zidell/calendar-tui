@@ -730,8 +730,8 @@ func (m model) help() string {
 		if m.view != vMonth {
 			unit = L("주", "week")
 		}
-		return fmt.Sprintf(L(" ←↑↓→ 이동 · tab·[ ] 다음/이전 %s · v 보기(%s) · a 빠른 추가 · / 검색 · enter 일정 · g 월 이동 · t 오늘 · s 설정 · ^H 숨기기 · q 종료",
-			" ←↑↓→ move · tab·[ ] next/prev %s · v view (%s) · a quick add · / search · enter events · g go to · t today · s settings · ^H hide · q quit"), unit, viewName(m.view))
+		return fmt.Sprintf(L(" ←↑↓→ 이동 · tab·[ ] 다음/이전 %s · v·1·2·3 보기(%s) · a 빠른 추가 · / 검색 · enter 일정 · g 월 이동 · t 오늘 · s 설정 · ^H 숨기기 · q 종료",
+			" ←↑↓→ move · tab·[ ] next/prev %s · v·1·2·3 view (%s) · a quick add · / search · enter events · g go to · t today · s settings · ^H hide · q quit"), unit, viewName(m.view))
 	case mDay:
 		return L(" ↑↓ 선택 · enter 열기 · a 새 일정 · esc 닫기", " ↑↓ select · enter open · a new · esc close")
 	case mDetail:

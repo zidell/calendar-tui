@@ -75,9 +75,11 @@ func calendarPID() -> pid_t? {
     return s.split(separator: "\n").first.flatMap { pid_t($0) }
 }
 
-// Cmd+H: Terminal이 맨 앞일 때만 실행기가 가로챈다(Carbon 단축키, 손쉬운 사용 권한 필요 없음).
-// 맨 앞 창이 캘린더면 그 창만 숨기고(Cmd+H는 원래 Terminal 창을 모두 숨긴다), 아니면 원래처럼 Terminal을 숨긴다.
-// 다른 앱이 앞에 오면 등록을 풀어 그 앱의 Cmd+H는 건드리지 않는다. 숨긴 창은 showCalendar(Dock 클릭·Cmd+Tab)가 다시 보인다.
+// Cmd 단축키를 실행기가 가로채 Terminal 창이 단독 앱처럼 굴게 한다(Terminal은 Cmd 조합을 앱에 넘기지 않는다).
+//  Cmd+H: Terminal이 맨 앞일 때만. 맨 앞 창이 캘린더면 그 창만 숨기고, 아니면 원래처럼 Terminal을 숨긴다.
+//         숨긴 창은 showCalendar(Dock 클릭·Cmd+Tab)가 다시 보인다.
+//  Cmd+글자: 캘린더 창이 포커스인 동안만(캘린더가 알려 줌) 받아 캘린더에 그 글자로 넘긴다. 입력기는 Cmd 조합을
+//         조합하지 않으므로 한글 상태에서도 단축키가 먹는다.
 let hideScript = NSAppleScript(source: """
 tell application "Terminal"
     if (count windows) > 0 then
@@ -91,38 +93,134 @@ end tell
 return "other"
 """)
 
-final class CmdH {
-    var ref: EventHotKeyRef?
+// 단축키는 Carbon RegisterEventHotKey(손쉬운 사용 권한 필요 없음). 눌리면 id로 가른다: 1 = Cmd+H, 100+ = Cmd+글자.
+// unixAddr는 유닉스 소켓 주소(경로는 sun_path 길이에서 잘림).
+func unixAddr(_ path: String) -> sockaddr_un {
+    var addr = sockaddr_un()
+    addr.sun_family = sa_family_t(AF_UNIX)
+    withUnsafeMutableBytes(of: &addr.sun_path) { dst in
+        let src = Array(path.utf8.prefix(dst.count - 1))
+        dst.copyBytes(from: src)
+    }
+    return addr
+}
+
+final class HotKeys {
+    var hideRef: EventHotKeyRef?
+    var keyRefs: [EventHotKeyRef] = []
+    var calendarFocused = false
+    let supportDir = FileManager.default.homeDirectoryForCurrentUser
+        .appendingPathComponent("Library/Application Support/calendar-tui").path
+    var sock: Int32 = -1
+    var sockSource: DispatchSourceRead?
+
+    // 캘린더 창이 포커스일 때 가져오는 Cmd+글자(물리 키 위치라 한글 자판이어도 같다). 캘린더엔 글자로 넘긴다.
+    // Cmd+C·V(복사·붙여넣기), Cmd+H(아래 따로), Cmd+M(최소화)은 Terminal에 그대로 둔다.
+    static let keys: [(Int, String)] = [
+        (kVK_ANSI_A, "a"), (kVK_ANSI_B, "b"), (kVK_ANSI_D, "d"), (kVK_ANSI_E, "e"), (kVK_ANSI_F, "f"),
+        (kVK_ANSI_G, "g"), (kVK_ANSI_I, "i"), (kVK_ANSI_J, "j"), (kVK_ANSI_K, "k"), (kVK_ANSI_L, "l"),
+        (kVK_ANSI_N, "n"), (kVK_ANSI_O, "o"), (kVK_ANSI_P, "p"), (kVK_ANSI_Q, "q"), (kVK_ANSI_R, "r"),
+        (kVK_ANSI_S, "s"), (kVK_ANSI_T, "t"), (kVK_ANSI_U, "u"), (kVK_ANSI_W, "w"), (kVK_ANSI_X, "x"),
+        (kVK_ANSI_Y, "y"), (kVK_ANSI_Z, "z"), (kVK_ANSI_Slash, "/"), (kVK_ANSI_LeftBracket, "["),
+        (kVK_ANSI_RightBracket, "]"), (kVK_ANSI_Comma, ","),
+        (kVK_ANSI_1, "1"), (kVK_ANSI_2, "2"), (kVK_ANSI_3, "3"),
+    ]
 
     init() {
         var spec = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
-        InstallEventHandler(GetApplicationEventTarget(), { _, _, _ in
-            DispatchQueue.main.async { CmdH.pressed() }
+        InstallEventHandler(GetApplicationEventTarget(), { _, event, _ in
+            var hk = EventHotKeyID()
+            GetEventParameter(event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID), nil,
+                              MemoryLayout<EventHotKeyID>.size, nil, &hk)
+            let id = Int(hk.id)
+            DispatchQueue.main.async { delegate.hotKeys?.pressed(id) }
             return noErr
         }, 1, &spec, nil, nil)
         let ws = NSWorkspace.shared.notificationCenter
         ws.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] n in
             let app = n.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
-            self?.set(app?.bundleIdentifier == "com.apple.Terminal")
+            self?.terminalFront(app?.bundleIdentifier == "com.apple.Terminal")
         }
-        set(NSWorkspace.shared.frontmostApplication?.bundleIdentifier == "com.apple.Terminal")
+        terminalFront(NSWorkspace.shared.frontmostApplication?.bundleIdentifier == "com.apple.Terminal")
+        listen()
     }
 
-    func set(_ on: Bool) {
-        if on, ref == nil {
+    // Cmd+H: Terminal이 맨 앞일 때만. 맨 앞 창이 캘린더면 그 창만 숨기고, 아니면 원래처럼 Terminal을 숨긴다.
+    func terminalFront(_ on: Bool) {
+        if on, hideRef == nil {
             RegisterEventHotKey(UInt32(kVK_ANSI_H), UInt32(cmdKey), EventHotKeyID(signature: OSType(0x6361_6c68), id: 1),
-                                GetApplicationEventTarget(), 0, &ref)
-        } else if !on, let r = ref {
+                                GetApplicationEventTarget(), 0, &hideRef)
+        } else if !on, let r = hideRef {
             UnregisterEventHotKey(r)
-            ref = nil
+            hideRef = nil
+        }
+        if !on { setKeys(false) } // 다른 앱으로 가면 Cmd+글자도 확실히 푼다
+    }
+
+    // Cmd+글자: 캘린더가 "focus 1"을 보낸 동안만(그 창이 포커스). 다른 Terminal 창·앱은 원래대로.
+    func setKeys(_ on: Bool) {
+        calendarFocused = on
+        if on, keyRefs.isEmpty {
+            for (i, k) in HotKeys.keys.enumerated() {
+                var ref: EventHotKeyRef?
+                RegisterEventHotKey(UInt32(k.0), UInt32(cmdKey), EventHotKeyID(signature: OSType(0x6361_6c68), id: UInt32(100 + i)),
+                                    GetApplicationEventTarget(), 0, &ref)
+                if let ref { keyRefs.append(ref) }
+            }
+        } else if !on {
+            keyRefs.forEach { UnregisterEventHotKey($0) }
+            keyRefs.removeAll()
         }
     }
 
-    static func pressed() {
-        var err: NSDictionary?
-        let r = hideScript?.executeAndReturnError(&err).stringValue
-        if r != "calendar" {
-            NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Terminal").first?.hide()
+    func pressed(_ id: Int) {
+        if id == 1 {
+            var err: NSDictionary?
+            if hideScript?.executeAndReturnError(&err).stringValue != "calendar" {
+                NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Terminal").first?.hide()
+            }
+            return
+        }
+        let i = id - 100
+        if i >= 0, i < HotKeys.keys.count { send("key " + HotKeys.keys[i].1) }
+    }
+
+    // 캘린더 → 실행기: launcher.sock으로 "focus 1"/"focus 0"
+    func listen() {
+        let path = supportDir + "/launcher.sock"
+        unlink(path)
+        sock = socket(AF_UNIX, SOCK_DGRAM, 0)
+        guard sock >= 0 else { return }
+        var addr = unixAddr(path)
+        let ok = withUnsafePointer(to: &addr) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { bind(sock, $0, socklen_t(MemoryLayout<sockaddr_un>.size)) }
+        }
+        guard ok == 0 else { return }
+        let src = DispatchSource.makeReadSource(fileDescriptor: sock, queue: .main)
+        src.setEventHandler { [weak self] in
+            guard let self else { return }
+            var buf = [UInt8](repeating: 0, count: 64)
+            let n = recv(self.sock, &buf, buf.count, 0)
+            guard n > 0 else { return }
+            let msg = String(decoding: buf[0..<n], as: UTF8.self)
+            if msg == "focus 1" { self.setKeys(NSWorkspace.shared.frontmostApplication?.bundleIdentifier == "com.apple.Terminal") }
+            if msg == "focus 0" { self.setKeys(false) }
+        }
+        src.resume()
+        sockSource = src
+    }
+
+    // 실행기 → 캘린더: calendar.sock으로 "key a"
+    func send(_ msg: String) {
+        let path = supportDir + "/calendar.sock"
+        let s = socket(AF_UNIX, SOCK_DGRAM, 0)
+        guard s >= 0 else { return }
+        defer { close(s) }
+        var addr = unixAddr(path)
+        _ = msg.withCString { m in
+            withUnsafePointer(to: &addr) {
+                $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { sendto(s, m, strlen(m), 0, $0, socklen_t(MemoryLayout<sockaddr_un>.size)) }
+            }
         }
     }
 }
@@ -130,12 +228,12 @@ final class CmdH {
 final class Delegate: NSObject, NSApplicationDelegate {
     var exitWatch: DispatchSourceProcess?
     var pid: pid_t = 0
-    var cmdH: CmdH?
+    var hotKeys: HotKeys?
 
     func applicationDidFinishLaunching(_ n: Notification) {
         showCalendar()
         watch(tries: 20)
-        cmdH = CmdH()
+        hotKeys = HotKeys()
     }
 
     // 캘린더가 뜰 때까지(최대 약 10초) pid를 찾고, 그다음엔 종료 알림만 기다린다(폴링 없음).
