@@ -9,149 +9,84 @@
 <meta property="og:title" content="calendar-tui">
 <meta property="og:description" content="A lightweight terminal calendar for your macOS calendar accounts">
 <meta property="og:image" content="https://zidell.github.io/calendar-tui/screenshot.png">
-<style>
-:root {
-  --bg: #f6f5f2; --fg: #1d1d1f; --muted: #6b6b70; --line: #dcdad4;
-  --card: #ffffff; --code: #1b1b1d; --code-fg: #ececec; --accent: #d9443b;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #141415; --fg: #ececec; --muted: #9a9aa0; --line: #2c2c2f;
-    --card: #1c1c1e; --code: #0c0c0d; --code-fg: #ececec; --accent: #ef5f55;
-  }
-}
-* { box-sizing: border-box; }
-body {
-  margin: 0; background: var(--bg); color: var(--fg);
-  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
-code, pre, .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
-a { color: inherit; }
-.wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; }
-header { display: flex; align-items: center; justify-content: space-between; padding: 22px 0; }
-.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; text-decoration: none; }
-.brand img { width: 28px; height: 28px; border-radius: 7px; }
-nav { display: flex; gap: 18px; align-items: center; font-size: 14px; color: var(--muted); }
-nav a { text-decoration: none; }
-nav a:hover { color: var(--fg); }
-.lang { border: 1px solid var(--line); background: none; color: var(--fg); border-radius: 999px; padding: 3px 11px; font: inherit; font-size: 13px; cursor: pointer; }
-.hero { padding: 56px 0 28px; }
-h1 { font-size: clamp(34px, 6vw, 56px); line-height: 1.12; letter-spacing: -0.02em; margin: 0 0 18px; }
-h1 .dim { color: var(--muted); }
-.lead { font-size: 19px; color: var(--muted); max-width: 660px; margin: 0 0 30px; }
-.install { display: flex; align-items: stretch; max-width: 780px; background: var(--code); color: var(--code-fg); border-radius: 12px; overflow: hidden; }
-.install code { flex: 1; padding: 15px 18px; font-size: 14.5px; overflow-x: auto; white-space: nowrap; }
-.install code::before { content: "$ "; color: #7d7d82; }
-.copy { border: 0; border-left: 1px solid #2a2a2d; background: transparent; color: var(--code-fg); padding: 0 18px; font: inherit; font-size: 14px; cursor: pointer; }
-.copy:hover { background: #222225; }
-.note { font-size: 13.5px; color: var(--muted); margin: 12px 0 0; }
-.shot { margin: 46px 0 10px; }
-.shot img { width: 100%; height: auto; display: block; border-radius: 12px; border: 1px solid var(--line); box-shadow: 0 18px 50px rgba(0,0,0,.18); }
-section { padding: 40px 0; border-top: 1px solid var(--line); }
-h2 { font-size: 24px; letter-spacing: -0.01em; margin: 0 0 22px; }
-kbd { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 0 6px; background: var(--card); color: var(--fg); }
-table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
-td { padding: 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
-td:first-child { width: 38%; padding-right: 16px; white-space: nowrap; }
-ul.plain { margin: 0; padding-left: 18px; color: var(--muted); }
-ul.plain li { margin: 4px 0; }
-pre { background: var(--code); color: var(--code-fg); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 13.5px; }
-footer { padding: 34px 0 50px; color: var(--muted); font-size: 13.5px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
-[data-l="en"] { display: none; }
-html[lang="en"] [data-l="ko"] { display: none; }
-html[lang="en"] [data-l="en"] { display: revert; }
-@media (max-width: 620px) {
-  nav .hide-sm { display: none; }
-  .hero { padding-top: 30px; }
-  .lead { font-size: 17px; }
-  td:first-child { white-space: normal; width: 45%; }
-}
-</style>
 </head>
-<body>
-<div class="wrap">
-  <header>
-    <a class="brand" href="./"><img src="icon.png" alt="">calendar-tui</a>
-    <nav>
-      <a class="hide-sm" href="#keys"><span data-l="ko">키</span><span data-l="en">Keys</span></a>
-      <a href="https://github.com/zidell/calendar-tui">GitHub</a>
-      <button class="lang" id="lang" type="button">English</button>
-    </nav>
-  </header>
+<body style="max-width: 700px; margin: 0 auto">
 
-  <div class="hero">
-    <h1>
-      <span data-l="ko">터미널용 캘린더</span>
-      <span data-l="en">A calendar for the terminal</span>
-    </h1>
-    <p class="lead">
-      <span data-l="ko">맥북 기준, 시스템에 설정된 iCloud/Google 캘린더 정보 기반으로 TUI상에서 간단하게 사용할 목적으로 개발됨</span>
-      <span data-l="en">For Mac. Built for simple use in a TUI, based on the iCloud/Google calendars set up in your system.</span>
-    </p>
-    <div class="install">
-      <code id="cmd">curl -fsSL https://zidell.github.io/calendar-tui/install.sh | bash</code>
-      <button class="copy" id="copy" type="button"><span data-l="ko">복사</span><span data-l="en">Copy</span></button>
-    </div>
-    <p class="note">
-      <span data-l="ko">macOS 14 이상 · Apple Silicon·Intel · 설치 후 Dock의 Calendar TUI를 누르세요. 같은 명령으로 업데이트합니다.</span>
-      <span data-l="en">macOS 14+ · Apple Silicon &amp; Intel · Then click Calendar TUI in the Dock. Run the same command to update.</span>
-    </p>
-    <div class="shot"><img src="screenshot.png" alt="calendar-tui month view" width="1600" height="1094"></div>
-  </div>
+<p>
+<a href="#keys"><span data-l="ko">키</span><span data-l="en" hidden>Keys</span></a> |
+<a href="https://github.com/zidell/calendar-tui">GitHub</a> |
+<a href="#" id="lang">English</a>
+</p>
 
-  <section id="keys">
-    <h2><span data-l="ko">주요 키</span><span data-l="en">Main keys</span></h2>
-    <table>
-      <tr><td><kbd>←</kbd> <kbd>↑</kbd> <kbd>↓</kbd> <kbd>→</kbd></td><td><span data-l="ko">하루 · 한 주 이동</span><span data-l="en">Move by day / week</span></td></tr>
-      <tr><td><kbd>[</kbd> <kbd>]</kbd></td><td><span data-l="ko">이전 · 다음 달(주)</span><span data-l="en">Previous / next month (week)</span></td></tr>
-      <tr><td><kbd>Enter</kbd></td><td><span data-l="ko">그날 일정 목록</span><span data-l="en">That day's events</span></td></tr>
-      <tr><td><kbd>a</kbd> · <kbd>/</kbd> · <kbd>v</kbd></td><td><span data-l="ko">빠른 추가 · 검색 · 보기 바꾸기</span><span data-l="en">Quick add · search · switch view</span></td></tr>
-      <tr><td><kbd>g</kbd> · <kbd>t</kbd> · <kbd>s</kbd></td><td><span data-l="ko">월 이동 · 오늘 · 설정</span><span data-l="en">Go to month · today · settings</span></td></tr>
-      <tr><td><kbd>esc</kbd> · <kbd>q</kbd></td><td><span data-l="ko">창 닫기(취소) · 종료</span><span data-l="en">Close window (cancel) · quit</span></td></tr>
-    </table>
-  </section>
+<h1><img src="icon.png" alt="" width="32" height="32" align="absmiddle"> calendar-tui</h1>
 
-  <section>
-    <h2><span data-l="ko">처음 실행할 때</span><span data-l="en">First launch</span></h2>
-    <ul class="plain">
-      <li><span data-l="ko">캘린더 계정은 시스템 설정 → 인터넷 계정에 추가해 둔 구글·iCloud 등을 그대로 씁니다.</span><span data-l="en">It uses the Google, iCloud and other accounts in System Settings → Internet Accounts.</span></li>
-      <li><span data-l="ko">권한 창 두 개를 허용합니다: “Calendar TUI가 Terminal을 제어”, “터미널이 캘린더에 접근”.</span><span data-l="en">Allow two prompts: “Calendar TUI wants to control Terminal” and “Terminal wants to access Calendars”.</span></li>
-      <li><span data-l="ko">일정은 네트워크로 보내지 않습니다. macOS 캘린더 데이터베이스를 직접 읽고, 동기화는 macOS가 합니다.</span><span data-l="en">Nothing is sent over the network. It reads the macOS calendar database directly; macOS does the syncing.</span></li>
-      <li><span data-l="ko">지우려면 <code>/Applications/Calendar TUI.app</code>과 <code>~/Library/Application Support/calendar-tui</code>를 휴지통으로.</span><span data-l="en">To uninstall, trash <code>/Applications/Calendar TUI.app</code> and <code>~/Library/Application Support/calendar-tui</code>.</span></li>
-    </ul>
-    <p class="note"><span data-l="ko">소스에서 빌드하려면(Go, Xcode 커맨드라인 도구 필요):</span><span data-l="en">To build from source (needs Go and the Xcode Command Line Tools):</span></p>
-    <pre>git clone https://github.com/zidell/calendar-tui.git
-cd calendar-tui && scripts/package.sh --install</pre>
-  </section>
+<p>
+<b><span data-l="ko">터미널용 캘린더</span><span data-l="en" hidden>A calendar for the terminal</span></b>
+</p>
 
-  <footer>
-    <span>calendar-tui · MIT License</span>
-    <span><a href="https://github.com/zidell/calendar-tui">github.com/zidell/calendar-tui</a></span>
-  </footer>
-</div>
+<p>
+<span data-l="ko">맥북 기준, 시스템에 설정된 iCloud/Google 캘린더 정보 기반으로 TUI상에서 간단하게 사용할 목적으로 개발됨</span>
+<span data-l="en" hidden>For Mac. Built for simple use in a TUI, based on the iCloud/Google calendars set up in your system.</span>
+</p>
+
+<h2><span data-l="ko">설치</span><span data-l="en" hidden>Install</span></h2>
+
+<pre>curl -fsSL https://zidell.github.io/calendar-tui/install.sh | bash</pre>
+
+<p>
+<span data-l="ko">macOS 14 이상 · Apple Silicon·Intel · 설치 후 Dock의 Calendar TUI를 누르세요. 같은 명령으로 업데이트합니다.</span>
+<span data-l="en" hidden>macOS 14+ · Apple Silicon &amp; Intel · Then click Calendar TUI in the Dock. Run the same command to update.</span>
+</p>
+
+<p><img src="screenshot.png" alt="calendar-tui month view" width="700" height="479"></p>
+
+<hr>
+
+<h2 id="keys"><span data-l="ko">주요 키</span><span data-l="en" hidden>Main keys</span></h2>
+
+<table border="1" cellpadding="4" cellspacing="0" width="100%">
+<tr><td><kbd>←</kbd> <kbd>↑</kbd> <kbd>↓</kbd> <kbd>→</kbd></td><td><span data-l="ko">하루 · 한 주 이동</span><span data-l="en" hidden>Move by day / week</span></td></tr>
+<tr><td><kbd>[</kbd> <kbd>]</kbd></td><td><span data-l="ko">이전 · 다음 달(주)</span><span data-l="en" hidden>Previous / next month (week)</span></td></tr>
+<tr><td><kbd>Enter</kbd></td><td><span data-l="ko">그날 일정 목록</span><span data-l="en" hidden>That day's events</span></td></tr>
+<tr><td><kbd>a</kbd> · <kbd>/</kbd> · <kbd>v</kbd></td><td><span data-l="ko">빠른 추가 · 검색 · 보기 바꾸기</span><span data-l="en" hidden>Quick add · search · switch view</span></td></tr>
+<tr><td><kbd>g</kbd> · <kbd>t</kbd> · <kbd>s</kbd></td><td><span data-l="ko">월 이동 · 오늘 · 설정</span><span data-l="en" hidden>Go to month · today · settings</span></td></tr>
+<tr><td><kbd>esc</kbd> · <kbd>q</kbd></td><td><span data-l="ko">창 닫기(취소) · 종료</span><span data-l="en" hidden>Close window (cancel) · quit</span></td></tr>
+</table>
+
+<hr>
+
+<h2><span data-l="ko">처음 실행할 때</span><span data-l="en" hidden>First launch</span></h2>
+
+<ul>
+<li><span data-l="ko">캘린더 계정은 시스템 설정 → 인터넷 계정에 추가해 둔 구글·iCloud 등을 그대로 씁니다.</span><span data-l="en" hidden>It uses the Google, iCloud and other accounts in System Settings → Internet Accounts.</span></li>
+<li><span data-l="ko">권한 창 두 개를 허용합니다: “Calendar TUI가 Terminal을 제어”, “터미널이 캘린더에 접근”.</span><span data-l="en" hidden>Allow two prompts: “Calendar TUI wants to control Terminal” and “Terminal wants to access Calendars”.</span></li>
+<li><span data-l="ko">일정은 네트워크로 보내지 않습니다. macOS 캘린더 데이터베이스를 직접 읽고, 동기화는 macOS가 합니다.</span><span data-l="en" hidden>Nothing is sent over the network. It reads the macOS calendar database directly; macOS does the syncing.</span></li>
+<li><span data-l="ko">지우려면 <code>/Applications/Calendar TUI.app</code>과 <code>~/Library/Application Support/calendar-tui</code>를 휴지통으로.</span><span data-l="en" hidden>To uninstall, trash <code>/Applications/Calendar TUI.app</code> and <code>~/Library/Application Support/calendar-tui</code>.</span></li>
+</ul>
+
+<p><span data-l="ko">소스에서 빌드하려면(Go, Xcode 커맨드라인 도구 필요):</span><span data-l="en" hidden>To build from source (needs Go and the Xcode Command Line Tools):</span></p>
+
+<pre>git clone https://github.com/zidell/calendar-tui.git
+cd calendar-tui &amp;&amp; scripts/package.sh --install</pre>
+
+<hr>
+
+<address>calendar-tui · MIT License · <a href="https://github.com/zidell/calendar-tui">github.com/zidell/calendar-tui</a></address>
+
 <script>
 (function () {
   var root = document.documentElement, btn = document.getElementById('lang');
   function set(l) {
     root.lang = l;
     btn.textContent = l === 'ko' ? 'English' : '한국어';
+    var els = document.querySelectorAll('[data-l]');
+    for (var i = 0; i < els.length; i++) els[i].hidden = els[i].getAttribute('data-l') !== l;
     try { localStorage.setItem('lang', l); } catch (e) {}
   }
   var saved = null;
   try { saved = localStorage.getItem('lang'); } catch (e) {}
   set(saved || ((navigator.language || '').toLowerCase().indexOf('ko') === 0 ? 'ko' : 'en'));
-  btn.addEventListener('click', function () { set(root.lang === 'ko' ? 'en' : 'ko'); });
-  var copy = document.getElementById('copy');
-  copy.addEventListener('click', function () {
-    var text = document.getElementById('cmd').textContent;
-    var done = function () {
-      var spans = copy.querySelectorAll('span');
-      spans[0].textContent = '복사됨'; spans[1].textContent = 'Copied';
-      setTimeout(function () { spans[0].textContent = '복사'; spans[1].textContent = 'Copy'; }, 1500);
-    };
-    if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () {});
-  });
+  btn.addEventListener('click', function (e) { e.preventDefault(); set(root.lang === 'ko' ? 'en' : 'ko'); });
 })();
 </script>
 </body>
