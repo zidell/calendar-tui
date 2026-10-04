@@ -51,7 +51,10 @@ type model struct {
 	form       form
 	gotoIn     textinput.Model
 	moveIn     textinput.Model // 옮길 날짜
+	gotoBtn    int             // 월 이동 창 버튼 포커스(-1 = 입력 칸)
+	moveBtn    int             // 일정 이동 창 버튼 포커스(-1 = 입력 칸)
 	quickIn    textinput.Model // 빠른 추가 한 줄
+	quickBtn   int             // 빠른 추가 포커스: -1 입력 칸, 0 [추가], 1 [상세]
 	searchIn   textinput.Model // 검색어
 	searchAll  []event         // 검색 대상(열 때 읽음)
 	searchSel  int
@@ -59,6 +62,7 @@ type model struct {
 	gotoErr    string
 	menuSel    int      // 설정 메뉴에서 선택한 항목
 	setSel     int      // 캘린더 선택 화면에서 선택한 줄
+	setFrom    int      // 설정 화면에서 [저장]으로 Tab하기 전 줄(돌아올 자리)
 	setDraft   settings // 설정 화면에서 고치는 중인 사본
 	width      int
 	height     int
@@ -129,11 +133,16 @@ func (m model) move(t time.Time) model {
 
 // textInput은 한글 등 글자를 칠 칸에 있는지(날짜·시각·월 이동 칸은 숫자라 제외).
 func (m model) textInput() bool {
-	switch m.form.focus {
-	case fTitle, fLocation, fMemo: // URL 칸은 영문
-		return m.top() == mForm
+	switch m.top() {
+	case mForm:
+		f := m.form.focus
+		return f == fTitle || f == fLocation || f == fMemo // URL 칸은 영문
+	case mQuick:
+		return m.quickBtn < 0
+	case mSearch:
+		return true
 	}
-	return m.top() == mQuick || m.top() == mSearch
+	return false
 }
 
 // Update는 처리 뒤 입력 소스를 화면에 맞춘다(단축키 화면은 영문, 글자 칸은 원래 입력 소스).
@@ -192,6 +201,9 @@ func (m model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		if msg.String() == "esc" {
 			return m.pop(), nil
+		}
+		if nm, cmd, ok := m.handleButtons(msg); ok { // Tab·←→·Enter의 버튼 그룹 규칙은 모든 모달 공통(modal.go)
+			return nm, cmd
 		}
 		switch m.top() {
 		case mDay:
@@ -258,9 +270,9 @@ func (m model) updateCal(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m.move(m.cursor.AddDate(0, 0, 7)), nil
 	// 터미널은 Cmd 조합을 앱에 넘기지 않아 Shift·Option(alt) 조합으로 받는다
-	case "shift+up", "shift+left", "alt+up", "alt+left", "alt+b", "[", "pgup", "p":
+	case "shift+up", "shift+left", "alt+up", "alt+left", "alt+b", "[", "pgup", "p", "shift+tab":
 		return m.step(-1), nil
-	case "shift+down", "shift+right", "alt+down", "alt+right", "alt+f", "]", "pgdown", "n":
+	case "shift+down", "shift+right", "alt+down", "alt+right", "alt+f", "]", "pgdown", "n", "tab":
 		return m.step(1), nil
 	case "v":
 		m.view = (m.view + 1) % viewCount
@@ -275,6 +287,7 @@ func (m model) updateCal(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "g":
 		m.gotoIn.SetValue("")
 		m.gotoErr = ""
+		m.gotoBtn = -1
 		cmd := m.gotoIn.Focus()
 		return m.push(mGoto), cmd
 	case "s":
@@ -342,9 +355,9 @@ func (m model) updateDetail(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 	n := len(detailButtons())
 	switch k.String() {
-	case "left", "h", "shift+tab":
+	case "h":
 		m.detailBtn = (m.detailBtn + n - 1) % n
-	case "right", "l", "tab":
+	case "l":
 		m.detailBtn = (m.detailBtn + 1) % n
 	case "e":
 		return m.detailAction(0)
@@ -378,6 +391,7 @@ func (m model) detailAction(act int) (tea.Model, tea.Cmd) {
 		return m.push(mForm), cmd
 	case 2:
 		m.form.dup = false // commit이 이전 복제 폼 표시를 보지 않게
+		m.moveBtn = -1
 		m.moveIn.SetValue(m.detail.start.Format("2006-01-02"))
 		m.moveIn.CursorEnd()
 		m.gotoErr = ""
@@ -392,12 +406,20 @@ func (m model) detailAction(act int) (tea.Model, tea.Cmd) {
 
 // updateMove는 일정을 입력한 날로 옮긴다. 시각·길이는 그대로. 반복 일정이면 범위를 고른다.
 func (m model) updateMove(k tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.moveBtn >= 0 {
+		return m, nil
+	}
 	if k.String() != "enter" {
 		var cmd tea.Cmd
 		m.moveIn, cmd = m.moveIn.Update(k)
 		m.gotoErr = ""
 		return m, cmd
 	}
+	return m.moveEvent()
+}
+
+// moveEvent는 일정을 입력한 날로 옮긴다([이동]).
+func (m model) moveEvent() (tea.Model, tea.Cmd) {
 	d, err := parseDate(m.moveIn.Value())
 	if err != nil {
 		m.gotoErr = L("예: 2026-10-05", "e.g. 2026-10-05")
@@ -416,7 +438,7 @@ func (m model) updateMove(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m model) updateConfirm(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 	recurring := m.detail.repeat != repNone
 	switch k.String() {
-	case "left", "right", "h", "l", "tab", "shift+tab":
+	case "h", "l":
 		if recurring {
 			m.confirmBtn = 1 - m.confirmBtn
 		}
@@ -438,11 +460,6 @@ func (m model) updateForm(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch k.String() {
 	case "ctrl+s":
 		return m.saveForm()
-	case "tab": // 버튼([저장])으로 바로. 거기서 한 번 더 누르면 제목으로
-		if f.focus == fSave {
-			return m, f.setFocus(fTitle)
-		}
-		return m, f.setFocus(fSave)
 	case "down":
 		return m, f.step(1)
 	case "shift+tab", "up":
@@ -517,7 +534,7 @@ func (m model) saveForm() (tea.Model, tea.Cmd) {
 
 func (m model) updateSpan(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch k.String() {
-	case "left", "right", "h", "l", "tab", "shift+tab":
+	case "h", "l":
 		m.spanBtn = 1 - m.spanBtn
 	case "enter":
 		return m.commit(m.pending, span(m.spanBtn))
@@ -587,18 +604,26 @@ func parseMonth(s string, cur time.Time) (time.Time, bool) {
 }
 
 func (m model) updateGoto(k tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.gotoBtn >= 0 {
+		return m, nil
+	}
 	if k.String() == "enter" {
-		t, ok := parseMonth(m.gotoIn.Value(), m.cursor)
-		if !ok {
-			m.gotoErr = L("예: 2026-12, 202612, 12", "e.g. 2026-12, 202612, 12")
-			return m, nil
-		}
-		return m.pop().move(t), nil
+		return m.goMonth()
 	}
 	var cmd tea.Cmd
 	m.gotoIn, cmd = m.gotoIn.Update(k)
 	m.gotoErr = ""
 	return m, cmd
+}
+
+// goMonth는 입력한 달로 간다([이동]).
+func (m model) goMonth() (tea.Model, tea.Cmd) {
+	t, ok := parseMonth(m.gotoIn.Value(), m.cursor)
+	if !ok {
+		m.gotoErr = L("예: 2026-12, 202612, 12", "e.g. 2026-12, 202612, 12")
+		return m, nil
+	}
+	return m.pop().move(t), nil
 }
 
 // version은 릴리스 빌드 때 -ldflags "-X main.version=v0.1.0"으로 넣는다(scripts/package.sh).
@@ -722,6 +747,7 @@ func (m model) openQuick() (tea.Model, tea.Cmd) {
 	m.quickIn.SetValue("")
 	m.quickIn.Placeholder = L("예: 내일 오후 3시 회의 · 금 10:30-12 리뷰", "e.g. tomorrow 3pm lunch · fri 10:30-12 review")
 	m.gotoErr = ""
+	m.quickBtn = -1
 	cmd := m.quickIn.Focus()
 	return m.push(mQuick), cmd
 }
@@ -736,28 +762,36 @@ func (m model) quickEvent() event {
 	return r.e
 }
 
-// updateQuick: enter = 바로 저장, tab = 폼으로 넘겨 자세히 고치기.
+// updateQuick: 입력 칸에서 enter = 바로 추가(한 줄이라). Tab·버튼 이동은 전역 버튼 그룹 규칙(modal.go).
+// (처음엔 tab이 바로 폼으로 넘어갔는데 헷갈린다는 사용자 지적으로 [추가] [상세] 버튼으로 바꿈)
 func (m model) updateQuick(k tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch k.String() {
-	case "enter":
-		if strings.TrimSpace(m.quickIn.Value()) == "" {
-			return m, nil
-		}
-		e := m.quickEvent()
-		if e.calID == "" {
-			m.gotoErr = L("쓸 수 있는 캘린더가 없습니다", "No writable calendar")
-			return m, nil
-		}
-		return m.commit(e, spanThis)
-	case "tab":
-		e := m.quickEvent()
-		m = m.pop()
-		m.form = newForm(e, m.db.writableCals())
-		cmd := m.form.setFocus(fTitle)
-		return m.push(mForm), cmd
+	if m.quickBtn >= 0 { // 버튼에 있을 때 다른 키는 무시
+		return m, nil
+	}
+	if k.String() == "enter" {
+		return m.quickAction(0)
 	}
 	var cmd tea.Cmd
 	m.quickIn, cmd = m.quickIn.Update(k)
 	m.gotoErr = ""
 	return m, cmd
+}
+
+// quickAction: 0 [추가] = 바로 저장, 1 [상세] = 해석한 내용을 채운 폼으로.
+func (m model) quickAction(b int) (tea.Model, tea.Cmd) {
+	if strings.TrimSpace(m.quickIn.Value()) == "" && b == 0 {
+		return m, nil
+	}
+	e := m.quickEvent()
+	if b == 1 {
+		m = m.pop()
+		m.form = newForm(e, m.db.writableCals())
+		cmd := m.form.setFocus(fTitle)
+		return m.push(mForm), cmd
+	}
+	if e.calID == "" {
+		m.gotoErr = L("쓸 수 있는 캘린더가 없습니다", "No writable calendar")
+		return m, nil
+	}
+	return m.commit(e, spanThis)
 }

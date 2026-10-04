@@ -671,7 +671,7 @@ func (m model) quickModal() string {
 	if m.gotoErr != "" {
 		rows = append(rows, errSt.Render(m.gotoErr))
 	}
-	rows = append(rows, "", buttons([]string{L("추가", "Add")}, 0))
+	rows = append(rows, "", buttons(quickButtons(), m.quickBtn))
 	return box(L("빠른 추가", "Quick add"), w, rows...)
 }
 
@@ -680,7 +680,7 @@ func (m model) moveModal() string {
 	if m.gotoErr != "" {
 		rows = append(rows, errSt.Render(m.gotoErr))
 	}
-	rows = append(rows, "", buttons([]string{goLabel()}, 0))
+	rows = append(rows, "", buttons([]string{goLabel()}, m.moveBtn))
 	return box(L("일정 이동", "Move event"), m.modalWidth(40), rows...)
 }
 
@@ -689,7 +689,7 @@ func (m model) gotoModal() string {
 	if m.gotoErr != "" {
 		rows = append(rows, errSt.Render(m.gotoErr))
 	}
-	rows = append(rows, "", buttons([]string{goLabel()}, 0))
+	rows = append(rows, "", buttons([]string{goLabel()}, m.gotoBtn))
 	return box(L("월 이동", "Go to month"), m.modalWidth(32), rows...)
 }
 
@@ -730,28 +730,31 @@ func (m model) help() string {
 		if m.view != vMonth {
 			unit = L("주", "week")
 		}
-		return fmt.Sprintf(L(" ←↑↓→ 이동 · [ ] 이전/다음 %s · v 보기(%s) · a 빠른 추가 · / 검색 · enter 일정 · g 월 이동 · t 오늘 · s 설정 · q 종료",
-			" ←↑↓→ move · [ ] prev/next %s · v view (%s) · a quick add · / search · enter events · g go to · t today · s settings · q quit"), unit, viewName(m.view))
+		return fmt.Sprintf(L(" ←↑↓→ 이동 · tab·[ ] 다음/이전 %s · v 보기(%s) · a 빠른 추가 · / 검색 · enter 일정 · g 월 이동 · t 오늘 · s 설정 · q 종료",
+			" ←↑↓→ move · tab·[ ] next/prev %s · v view (%s) · a quick add · / search · enter events · g go to · t today · s settings · q quit"), unit, viewName(m.view))
 	case mDay:
 		return L(" ↑↓ 선택 · enter 열기 · a 새 일정 · esc 닫기", " ↑↓ select · enter open · a new · esc close")
 	case mDetail:
-		return L(" ←→ 선택 · enter 실행 · e 편집 · c 복제 · m 이동 · d 삭제 · o 링크 열기 · esc 닫기",
-			" ←→ select · enter run · e edit · c duplicate · m move · d delete · o open link · esc close")
+		return L(" tab·←→ 선택 · enter 실행 · e 편집 · c 복제 · m 이동 · d 삭제 · o 링크 열기 · esc 닫기",
+			" tab·←→ select · enter run · e edit · c duplicate · m move · d delete · o open link · esc close")
 	case mMove:
-		return L(" enter 옮기기 · esc 취소", " enter move · esc cancel")
+		return L(" enter 옮기기 · tab 버튼으로 · esc 취소", " enter move · tab to button · esc cancel")
 	case mQuick:
-		return L(" enter 추가 · tab 자세히(폼) · esc 취소", " enter add · tab more options · esc cancel")
+		if m.quickBtn >= 0 {
+			return L(" tab·←→ 버튼 이동 · enter 실행 · ↑ 입력으로 · esc 취소", " tab·←→ next button · enter run · ↑ back to input · esc cancel")
+		}
+		return L(" enter 추가 · tab 버튼으로 · esc 취소", " enter add · tab to buttons · esc cancel")
 	case mSearch:
 		return L(" ↑↓ 선택 · enter 열기 · esc 닫기", " ↑↓ select · enter open · esc close")
 	case mForm:
-		return L(" ↑↓ 칸 이동 · tab [저장]으로 · ←→/space 바꾸기 · enter 다음 · ctrl+s 저장 · esc 취소",
-			" ↑↓ field · tab to [Save] · ←→/space change · enter next · ctrl+s save · esc cancel")
+		return L(" ↑↓ 칸 이동 · tab 버튼으로 · ←→/space 바꾸기 · enter 다음 · ctrl+s 저장 · esc 취소",
+			" ↑↓ field · tab to buttons · ←→/space change · enter next · ctrl+s save · esc cancel")
 	case mSpan:
 		return L(" ←→ 선택 · enter 저장 · esc 돌아가기", " ←→ select · enter save · esc back")
 	case mConfirm:
 		return L(" ←→ 선택 · enter 삭제 · esc 취소", " ←→ select · enter delete · esc cancel")
 	case mGoto:
-		return L(" enter 이동 · esc 취소", " enter go · esc cancel")
+		return L(" enter 이동 · tab 버튼으로 · esc 취소", " enter go · tab to button · esc cancel")
 	case mSettings:
 		return L(" ↑↓ 선택 · enter 열기 · esc 닫기", " ↑↓ select · enter open · esc close")
 	case mCalendars:
@@ -772,7 +775,10 @@ func spanButtons() []string {
 	return []string{L("이 일정만", "This event"), L("이후 일정 모두", "All future events")}
 }
 func saveLabel() string { return L("저장", "Save") }
-func goLabel() string   { return L("이동", "Go") }
+func quickButtons() []string {
+	return []string{L("추가", "Add"), L("상세", "Details")}
+}
+func goLabel() string { return L("이동", "Go") }
 
 func (m model) confirmButtons() []string {
 	if m.detail.repeat != repNone {

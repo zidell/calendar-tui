@@ -59,7 +59,8 @@ type form struct {
 	fresh      bool      // 날짜·시각 칸에 막 들어옴: 첫 글자가 기존 값을 덮어쓴다
 	last       time.Time // 마지막으로 유효했던 시작. 시작이 바뀐 만큼 종료를 옮기는 기준
 	err        string
-	dup        bool // 복제로 연 폼(저장해도 원래 일정의 상세를 바꾸지 않는다)
+	dup        bool  // 복제로 연 폼(저장해도 원래 일정의 상세를 바꾸지 않는다)
+	from       field // [저장]으로 Tab하기 전 칸(Tab이 돌아올 자리, modal.go)
 }
 
 func newInput(placeholder, value string, limit, width int) textinput.Model {

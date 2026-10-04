@@ -118,7 +118,7 @@ func (m model) updateCalendars(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch k.String() {
 	case "up", "k":
 		m.setSel = max(0, m.setSel-1)
-	case "down", "j", "tab":
+	case "down", "j":
 		m.setSel = min(len(rows), m.setSel+1)
 	case "ctrl+s":
 		return m.saveSettings(), nil
@@ -275,7 +275,7 @@ func (m model) updateDisplay(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch k.String() {
 	case "up", "k", "shift+tab":
 		m.setSel = max(0, m.setSel-1)
-	case "down", "j", "tab":
+	case "down", "j":
 		m.setSel = min(n, m.setSel+1)
 	case "ctrl+s":
 		return m.saveDisplay(), tea.SetWindowTitle(windowTitle())

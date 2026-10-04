@@ -50,10 +50,6 @@ h1 .dim { color: var(--muted); }
 .shot img { width: 100%; height: auto; display: block; border-radius: 12px; border: 1px solid var(--line); box-shadow: 0 18px 50px rgba(0,0,0,.18); }
 section { padding: 40px 0; border-top: 1px solid var(--line); }
 h2 { font-size: 24px; letter-spacing: -0.01em; margin: 0 0 22px; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 14px; }
-.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 18px 16px; }
-.card h3 { font-size: 16px; margin: 0 0 6px; }
-.card p { margin: 0; color: var(--muted); font-size: 14.5px; }
 kbd { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 0 6px; background: var(--card); color: var(--fg); }
 table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
 td { padding: 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
@@ -78,7 +74,6 @@ html[lang="en"] [data-l="en"] { display: revert; }
   <header>
     <a class="brand" href="./"><img src="icon.png" alt="">calendar-tui</a>
     <nav>
-      <a class="hide-sm" href="#features"><span data-l="ko">기능</span><span data-l="en">Features</span></a>
       <a class="hide-sm" href="#keys"><span data-l="ko">키</span><span data-l="en">Keys</span></a>
       <a href="https://github.com/zidell/calendar-tui">GitHub</a>
       <button class="lang" id="lang" type="button">English</button>
@@ -87,12 +82,12 @@ html[lang="en"] [data-l="en"] { display: revert; }
 
   <div class="hero">
     <h1>
-      <span data-l="ko">터미널 창 하나로 보는<br><span class="dim">내 맥의 캘린더.</span></span>
-      <span data-l="en">Your Mac's calendar,<br><span class="dim">in a terminal window.</span></span>
+      <span data-l="ko">터미널용 캘린더</span>
+      <span data-l="en">A calendar for the terminal</span>
     </h1>
     <p class="lead">
-      <span data-l="ko">시스템 설정에 등록해 둔 구글·iCloud 캘린더를 그대로 읽고 씁니다. 로그인도, 서버도 없습니다.</span>
-      <span data-l="en">Reads and writes the Google and iCloud calendars already in your System Settings. No sign-in, no server.</span>
+      <span data-l="ko">맥북 기준, 시스템에 설정된 iCloud/Google 캘린더 정보 기반으로 TUI상에서 간단하게 사용할 목적으로 개발됨</span>
+      <span data-l="en">For Mac. Built for simple use in a TUI, based on the iCloud/Google calendars set up in your system.</span>
     </p>
     <div class="install">
       <code id="cmd">curl -fsSL https://zidell.github.io/calendar-tui/install.sh | bash</code>
@@ -104,28 +99,6 @@ html[lang="en"] [data-l="en"] { display: revert; }
     </p>
     <div class="shot"><img src="screenshot.png" alt="calendar-tui month view" width="1600" height="1094"></div>
   </div>
-
-  <section id="features">
-    <h2><span data-l="ko">무엇을 하나요</span><span data-l="en">What it does</span></h2>
-    <div class="grid">
-      <div class="card"><h3><span data-l="ko">월간 · 주간 · 목록</span><span data-l="en">Month · Week · Agenda</span></h3>
-        <p><span data-l="ko"><kbd>v</kbd>로 보기를 바꿉니다. 주간은 시간 격자, 목록은 날짜별로 이어서.</span><span data-l="en">Switch views with <kbd>v</kbd>. A time grid for the week, a running list for the agenda.</span></p></div>
-      <div class="card"><h3><span data-l="ko">한 줄로 빠른 추가</span><span data-l="en">Quick add in one line</span></h3>
-        <p><span data-l="ko"><kbd>a</kbd> → “내일 오후 3시 치과”, “금 10:30-12 리뷰”. 미리보기 후 Enter.</span><span data-l="en"><kbd>a</kbd> → “tomorrow 3pm lunch”, “fri 9:30am standup for 15m”. Preview, then Enter.</span></p></div>
-      <div class="card"><h3><span data-l="ko">검색</span><span data-l="en">Search</span></h3>
-        <p><span data-l="ko"><kbd>/</kbd>로 앞뒤 1년의 제목·장소·메모를 찾습니다.</span><span data-l="en"><kbd>/</kbd> searches titles, locations and notes within a year.</span></p></div>
-      <div class="card"><h3><span data-l="ko">편집은 모두 확인 후 저장</span><span data-l="en">Every change is confirmed</span></h3>
-        <p><span data-l="ko">추가·편집·복제·이동·삭제, 반복 일정은 “이 일정만 / 이후 모두”. <kbd>esc</kbd>는 언제나 취소.</span><span data-l="en">Add, edit, duplicate, move, delete. Repeating events ask “this / all future”. <kbd>esc</kbd> always cancels.</span></p></div>
-      <div class="card"><h3><span data-l="ko">알림 · 회의 링크</span><span data-l="en">Alerts · meeting links</span></h3>
-        <p><span data-l="ko">알림은 macOS·폰이 띄웁니다. Meet·Zoom 링크는 <kbd>o</kbd>로 바로 엽니다.</span><span data-l="en">Alerts come from macOS and your phone. Open Meet or Zoom links with <kbd>o</kbd>.</span></p></div>
-      <div class="card"><h3><span data-l="ko">키보드와 마우스</span><span data-l="en">Keyboard and mouse</span></h3>
-        <p><span data-l="ko">한 글자 단축키, 클릭하면 바로 상세. 한글 입력기 상태에서도 단축키가 먹습니다.</span><span data-l="en">Single-key shortcuts; click an event to open it. Works with a Korean input method too.</span></p></div>
-      <div class="card"><h3><span data-l="ko">한국어 · English, 어둡게 · 밝게</span><span data-l="en">Korean · English, dark · light</span></h3>
-        <p><span data-l="ko">시스템 언어와 터미널 배경을 따라갑니다. 공휴일은 빨강으로.</span><span data-l="en">Follows the system language and terminal background. Holidays in red.</span></p></div>
-      <div class="card"><h3><span data-l="ko">설정은 파일 하나</span><span data-l="en">One settings file</span></h3>
-        <p><span data-l="ko">항목마다 설명이 달린 <code>config.toml</code>. 고치면 바로 반영 — AI 에이전트도 찾아서 고칠 수 있게.</span><span data-l="en">A commented <code>config.toml</code>, applied as soon as you save — easy for AI agents to find and edit too.</span></p></div>
-    </div>
-  </section>
 
   <section id="keys">
     <h2><span data-l="ko">주요 키</span><span data-l="en">Main keys</span></h2>

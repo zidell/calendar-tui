@@ -36,6 +36,7 @@ README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·�
 | `quick.go` | 빠른 추가 한 줄 해석(`parseQuick`, 테스트 `quick_test.go`) |
 | `search.go` | 검색(앞뒤 1년) |
 | `mouse.go` | 마우스 클릭 판정 |
+| `modal.go` | 모달 버튼 그룹 키 규칙(Tab·Shift+Tab·←→·Enter·↑) 한 곳 처리 |
 | `form.go` | 일정 추가·편집 폼 |
 | `events.go` | 일정·캘린더 타입, `backend` 인터페이스, 달 단위 캐시(`store`), 휴일 판정 |
 | `eventkit_darwin.go` | EventKit 구현체(cgo, Objective-C) |
@@ -48,7 +49,8 @@ README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·�
 | `keylog.go` | 키 입력 로그(기본 꺼짐, `config.toml` `[debug] key_log`. 입력한 글자도 남아서 공개 전 기본값을 끔) |
 | `dev.sh`, `scripts/term-run.sh` | 개발용 실행 |
 | `scripts/package.sh` | 앱 번들(`dist/Calendar TUI.app`) 만들기, `--install`이면 `/Applications`에 설치하고 Dock에 고정 |
-| `scripts/release.sh` | 릴리스: `scripts/release.sh v0.1.0` → 유니버설 번들 zip(`Calendar-TUI-macos.zip`)을 태그와 함께 GitHub Releases에 올림 |
+| `scripts/release.sh` | 릴리스: `scripts/release.sh v0.1.1` → 확인 후 태그만 푸시. 빌드·업로드는 Actions |
+| `.github/workflows/release.yml` | `v*` 태그 푸시 → macOS 러너에서 테스트·유니버설 빌드 → Releases에 `Calendar-TUI-macos.zip`. 수동 실행은 빌드만(아티팩트) |
 | `docs/` | GitHub Pages(https://zidell.github.io/calendar-tui/): 소개 페이지 `index.html`, 설치 스크립트 `install.sh`(`curl … \| bash`) |
 | `scripts/launcher.swift` | 앱 실행기(상주): Dock 실행 점, Dock 클릭·Cmd+Tab 때 캘린더 창 앞으로, 캘린더 종료 시 같이 종료 |
 | `scripts/make-icon.swift`, `assets/icon-1024.png` | 앱 아이콘 생성기와 결과(어두운 바탕·빨간 머리띠·달력 격자·오늘 칸 흰 테두리) |
@@ -62,18 +64,20 @@ README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·�
 
 - 모달은 스택으로 쌓는다(일정 목록 → 상세 → 편집 → 반복 범위 / 삭제 확인). 아래 화면은 흐리게 깐다.
 - `esc`는 전역으로 맨 위 모달 하나를 닫는다 = 취소. 그래서 **닫기·취소 버튼은 두지 않는다.**
+- **버튼 그룹 키 규칙(모든 모달 공통, 사용자 지시: 키보드만으로 리듬감 있게).** `Tab`은 다음 칸이 아니라 버튼 그룹으로 간다. 버튼 그룹에서 `Tab`을 계속 누르면 다음 버튼으로, 마지막 버튼에서 누르면 **버튼으로 오기 전 자리(그 칸·그 줄·입력 칸)로 돌아간다**(사용자 지시). `Shift+Tab`은 반대(첫 버튼에서 누르면 원래 자리로), `← →`도 버튼 사이 이동, `Enter`는 그 버튼 실행, `↑`도 원래 자리로. 버튼만 있는 모달(상세·삭제 확인·반복 범위)은 돌아갈 자리가 없어 버튼 사이를 돈다. 입력 칸이 하나뿐인 모달(빠른 추가·월 이동·일정 이동)은 입력 칸에서 `Enter`만 쳐도 첫 버튼을 실행한다. 구현은 `modal.go` 한 곳(`buttonGroup`이 모달마다 버튼 글자·포커스·실행을 정의, `handleButtons`가 키 처리). 새 모달을 만들면 `buttonGroup`에 넣는다.
+- 모달이 없는 달력 화면에선 `Tab`/`Shift+Tab`이 다음/이전(월간은 달, 주간·목록은 주).
 - 무언가를 바꾸는 모달은 **모두 확인 버튼을 눌러야 확정**한다(`[저장]`·`[삭제]`·`[이동]`). 바꾸는 즉시 반영하는 화면을 만들지 않는다(설정도 사본을 고치고 `[저장]`에서 반영).
 - 달력 화면의 `esc`는 아무 동작도 하지 않는다(연타로 앱이 꺼지지 않게). 종료는 `q`.
 - 모달 바깥(흐린 영역) 클릭 = `esc`(맨 위 모달 하나 닫기·취소). 폼도 예외 없이 닫는다(사용자 지시: 마우스로 쓸 땐 esc를 안 누르니까).
 - 일정 목록은 맨 위가 `+ 새 일정 추가`이고 기본 선택. 폭은 기본 60칸, 제목이 길면 화면 안에서 가장 긴 줄에 맞춰 넓힌다(처음엔 52칸 고정이라 긴 제목이 잘렸다).
 - 반복 일정은 ↻ 같은 기호 대신 제목 뒤 흐린 글씨 `(매주)`·`(매월)`. 복잡한 규칙은 `(2주마다)`·`(매주 월·수)`처럼 풀어 쓴다.
 - 반복 일정 저장·삭제는 Apple 캘린더처럼 **이 일정만 / 이후 일정 모두** 두 가지.
-- 폼: `Tab`은 다음 칸이 아니라 버튼(`[저장]`)으로 바로 간다(사용자 지시). 칸 이동은 `↑ ↓`, `[저장]`에서 `Tab`이면 제목으로.
+- 폼: 칸 이동은 `↑ ↓`(`Shift+Tab`도 이전 칸). `Tab`은 위 버튼 그룹 규칙대로 `[저장]`으로.
 - 폼: 시작을 바꾸면 종료도 같은 만큼 옮긴다(구글 캘린더 동작). 날짜·시각 칸에 들어가 첫 글자를 치면 기존 값을 덮어쓴다.
 - 새 일정의 캘린더는 마지막으로 저장한 일정의 캘린더를 자동 선택. "기본 캘린더" 설정은 두지 않는다.
 - 설정은 메뉴 구조(`s` → 항목 → 하위 화면). 항목은 "캘린더 선택"·"표시"(언어·테마·주 시작·시각 표기·좁을 때 고른 요일 최소 폭).
 - 상세 버튼은 `[편집] [복제] [이동] [삭제]`(키 e·c·m·d), 링크는 `o`. 복제는 그 회차를 반복 없는 새 일정으로, 이동은 날짜만 바꾼다(반복이면 범위 창). 저장 후 일정이 다른 날로 갔으면 커서가 따라간다(`commit`).
-- 빠른 추가(`a`)는 미리보기 후 `[추가]`/Enter로 확정(바로 저장하지 않음), `Tab`이면 폼으로. 검색(`/`)은 결과를 고르면 상세를 검색 위에 쌓아 esc로 검색에 돌아온다.
+- 빠른 추가(`a`)는 미리보기 후 `[추가]`/Enter로 확정(바로 저장하지 않음). 버튼은 `[추가] [상세]`(`[상세]` = 해석한 내용을 채운 폼). 처음엔 `Tab`이 바로 폼으로 넘어갔는데 헷갈린다는 지적으로 버튼 그룹 규칙을 따르게 바꿨다. 검색(`/`)은 결과를 고르면 상세를 검색 위에 쌓아 esc로 검색에 돌아온다.
 
 ### 색·모양
 
@@ -193,6 +197,7 @@ README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·�
 
 - 저장소 공개, MIT. 설치는 `curl -fsSL https://zidell.github.io/calendar-tui/install.sh | bash` 한 줄: 최신 릴리스 zip을 받아 `/Applications`에 넣고 실행 파일을 `~/Library/Application Support/calendar-tui/`에 두고 Dock에 고정한다. 다시 실행하면 업데이트(실행 중이면 새 실행 파일을 감지해 제자리 재시작).
 - 공증(연 $99) 없이 되는 이유: 브라우저로 받은 파일엔 격리 표시(`com.apple.quarantine`)가 붙어 Gatekeeper가 막지만 `curl`로 받은 파일엔 붙지 않는다. 번들은 ad-hoc 서명이라 Apple Silicon에서도 실행된다. 그래서 zip을 브라우저로 받아 여는 안내는 하지 않는다.
+- 릴리스는 GitHub Actions가 만든다(사용자 지시, 2026-10-04: 미리 빌드한 릴리스가 사용자 맥 빌드보다 낫고, 릴리스 수고는 Actions로 없앤다). `scripts/release.sh vX.Y.Z`는 깨끗한 작업 트리·푸시된 main을 확인하고 태그만 푸시한다. v0.1.0은 로컬에서 만들었다.
 - 릴리스는 유니버설(arm64 + x86_64, `UNIVERSAL=1`): Go는 `CC="clang -arch x86_64"`로 cgo 교차 빌드 후 `lipo`, 실행기는 `swiftc -target`. 인텔 실기기 확인은 못 했다. 버전은 `-ldflags -X main.version`과 Info.plist에 같이 넣는다(`calendar --version`).
 - 설치 스크립트 시험은 `ZIP_URL=file://… APP_DIR=… SUPPORT_DIR=… NO_DOCK=1 bash docs/install.sh`로 임시 폴더에(실제 설치를 건드리면 Terminal 제어 권한을 다시 묻는다).
 - 윈도우는 배포하지 않는다: 윈도우엔 EventKit처럼 시스템 계정 일정을 앱에 주는 창구가 사실상 없다(WinRT `AppointmentStore`는 패키지 신원이 필요하고, 데이터를 채우던 "메일 및 일정" 앱이 새 Outlook으로 바뀜 — 미확인 지식). 목업만 보이는 앱을 내놓지 않으려고 뺐다. 윈도우는 Google API·Graph 백엔드가 생기면 다시 본다.

@@ -68,16 +68,16 @@ func (m model) click(x, y int) (tea.Model, tea.Cmd) {
 			return m.openHit(hits[start+i])
 		}
 	case mQuick:
-		if buttonAt(ln, bx, L("추가", "Add")) >= 0 {
-			return m.updateQuick(enterKey)
+		if b := buttonAt(ln, bx, quickButtons()...); b >= 0 {
+			return m.quickAction(b)
 		}
 	case mMove:
 		if buttonAt(ln, bx, goLabel()) >= 0 {
-			return m.updateMove(enterKey)
+			return m.moveEvent()
 		}
 	case mGoto:
 		if buttonAt(ln, bx, goLabel()) >= 0 {
-			return m.updateGoto(enterKey)
+			return m.goMonth()
 		}
 	case mSettings:
 		if r >= 0 && r < len(settingMenu()) {

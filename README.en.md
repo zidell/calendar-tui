@@ -53,7 +53,7 @@ cd calendar-tui && scripts/package.sh --install
   - Add/Edit: title, all day, start/end, repeat (never, daily, weekly, monthly, yearly), alert (none, at start, 5/10/15/30 min, 1 hour, 1 day before; all-day events: 9am on the day, the day before, or a week before), calendar, location, URL, notes. New events default to the calendar you last saved to.
   - Duplicate opens that occurrence as a new non-repeating event in the form. Move changes only the date and keeps the time and length.
   - Editing, deleting or moving a repeating event asks **This event / All future events**.
-- **Quick add** (`a`): type one line, e.g. `tomorrow 3pm lunch`, `fri 9:30am standup for 15m`, `oct 20 all day offsite`, or in Korean `내일 오후 3시 치과`, `금요일 10:30-12 리뷰`. No date means the selected day, no time means all day, no length means one hour. Hours 1–7 without am/pm are read as pm. Check the preview and press `Enter`, or `Tab` to continue in the full form.
+- **Quick add** (`a`): type one line, e.g. `tomorrow 3pm lunch`, `fri 9:30am standup for 15m`, `oct 20 all day offsite`, or in Korean `내일 오후 3시 치과`, `금요일 10:30-12 리뷰`. No date means the selected day, no time means all day, no length means one hour. Hours 1–7 without am/pm are read as pm. Check the preview and press `Enter` (or `[Add]`), or `[Details]` to continue in the full form.
 - **Search** (`/`): titles, locations and notes of events within a year of today. Upcoming events first, then past ones. Picking a result goes to that day and opens its details; `esc` returns to the search.
 - Windows that change something only commit when you press their button (`[Save]`, `[Delete]`, `[Go]`, `[Add]`). `esc` always closes without changing anything.
 - Shortcuts work even with a Korean input method: the app switches the input source to English on shortcut screens and back to your input source in the title, location, notes, quick add and search fields, and restores it when you quit.
@@ -64,7 +64,7 @@ cd calendar-tui && scripts/package.sh --install
 | Screen | Key | Action |
 |---|---|---|
 | Calendar | `← ↑ ↓ →` / `hjkl` | Move by a day / a week (in Agenda, `↑ ↓` also move by a day) |
-| | `[` `]` (`p` `n`, PgUp/PgDn, `Shift`/`Option`+arrows) | Previous / next month (Month) or week (Week, Agenda) |
+| | `[` `]` (`Tab` `Shift+Tab`, `p` `n`, PgUp/PgDn, `Shift`/`Option`+arrows) | Previous / next month (Month) or week (Week, Agenda) |
 | | `v` | Switch view: Month → Week → Agenda |
 | | `a` | Quick add |
 | | `/` | Search |
@@ -75,17 +75,19 @@ cd calendar-tui && scripts/package.sh --install
 | | `Enter` | That day's events |
 | | `q` | Quit |
 | Any window | `esc` | Close (cancel) |
+| | `Tab` | Go to the buttons; keep pressing for the next button, and from the last one back to where you were (`Shift+Tab` backwards, `← →` too) |
+| | `Enter` (on a button) / `↑` | Run that button / leave the buttons back to where you were |
 | Event list | `↑ ↓` / `Enter` | Select / open |
 | | `a` | New event |
 | Event details | `← →` / `Enter` | Select / run a button |
 | | `e` / `c` / `m` / `d` | Edit / duplicate / move / delete |
 | | `o` | Open link |
 | Add/Edit | `↓` / `↑` (`Shift+Tab`) | Next / previous field |
-| | `Tab` | Jump to `[Save]` (press again to go back to the title) |
 | | `← →` `Space` | Toggle all day; change repeat, alert, calendar |
 | | `Enter` | Next field (saves on `[Save]`) |
 | | `Ctrl+S` | Save from anywhere |
-| Quick add | `Enter` / `Tab` | Add / continue in the form |
+| Quick add | `Enter` | Add right away |
+| | `Tab` … `Enter` | `[Add]` or `[Details]` (opens the form filled in) |
 | Search | `↑ ↓` / `Enter` | Select / open |
 | Delete confirmation | `Enter` / `y` | Delete |
 | Settings › Calendars | `Space` `Enter` | Toggle (applied with `[Save]` or `Ctrl+S`) |
