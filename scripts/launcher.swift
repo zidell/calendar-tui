@@ -264,7 +264,7 @@ final class Delegate: NSObject, NSApplicationDelegate {
         if pid != 0 { showCalendar() }
     }
 
-    // Dock에서 "종료"하면 캘린더도 끈다(입력 소스 복구 후 종료)
+    // Dock에서 "종료"하면 캘린더도 끈다
     func applicationWillTerminate(_ n: Notification) {
         exitWatch?.cancel()
         if pid != 0 { kill(pid, SIGTERM) }
