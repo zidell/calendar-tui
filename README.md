@@ -72,6 +72,7 @@ cd calendar-tui && scripts/package.sh --install
 | | `t` | 오늘로 |
 | | `r` | 새로고침 |
 | | `s` | 설정 |
+| | `Cmd+H` · `Ctrl+H` | 캘린더 창만 숨기기(다른 Terminal 창은 그대로). Dock의 Calendar TUI를 누르거나 Cmd+Tab으로 고르면 다시 나온다. `Cmd+H`는 앱(Dock)으로 실행했을 때만 |
 | | `Enter` | 그날 일정 목록 |
 | | `q` | 종료 |
 | 모든 창 | `esc` | 닫기(취소) |

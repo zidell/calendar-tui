@@ -72,6 +72,7 @@ cd calendar-tui && scripts/package.sh --install
 | | `t` | Today |
 | | `r` | Refresh |
 | | `s` | Settings |
+| | `Cmd+H` · `Ctrl+H` | Hide just the calendar window (other Terminal windows stay). Click Calendar TUI in the Dock or pick it with Cmd+Tab to bring it back. `Cmd+H` works when launched as the app (Dock) |
 | | `Enter` | That day's events |
 | | `q` | Quit |
 | Any window | `esc` | Close (cancel) |

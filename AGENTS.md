@@ -46,6 +46,7 @@ README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·�
 | `assets/readme.txt` | 앱 번들 `Contents/Resources/readme.txt`(설치 사용자·에이전트용 설정 안내) |
 | `ime*.go` | 입력 소스 자동 전환(Carbon TIS) |
 | `reload_*.go` | 새 빌드 감지 → 제자리 재시작 |
+| `terminal_darwin.go` | 내 Terminal 탭(tty)에 AppleScript: 글꼴 크기 읽기, 창 숨기기(`Ctrl+H`) |
 | `keylog.go` | 키 입력 로그(기본 꺼짐, `config.toml` `[debug] key_log`. 입력한 글자도 남아서 공개 전 기본값을 끔) |
 | `dev.sh`, `scripts/term-run.sh` | 개발용 실행 |
 | `scripts/package.sh` | 앱 번들(`dist/Calendar TUI.app`) 만들기, `--install`이면 `/Applications`에 설치하고 Dock에 고정 |
@@ -91,6 +92,8 @@ README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·�
 
 ### 키
 
+- `Ctrl+H`는 캘린더 창만 숨긴다(사용자 요청: `Cmd+H`는 Terminal 앱 숨기기라 다른 터미널 창까지 사라진다. `Cmd+H` 자체는 Terminal이 먼저 받아 앱에 오지 않는다). 내 탭(tty)의 창을 AppleScript로 `visible false`(`terminal_darwin.go` `hideWindow`). 실행기가 Dock 클릭·Cmd+Tab 때 하는 `set index` + `activate`가 숨긴 창도 다시 보이게 해서 실행기는 고치지 않았다(2026-10-04 확인). 글자 칸에선 `Ctrl+H`가 지우기라 그대로 둔다.
+- `Cmd+H`도 캘린더 창만 숨긴다: 실행기(`launcher.swift` `CmdH`)가 Terminal이 맨 앞일 때만 Carbon `RegisterEventHotKey`로 `Cmd+H`를 가로채(손쉬운 사용 권한 불필요), 맨 앞 창이 캘린더면 그 창만 `visible false`, 아니면 원래처럼 Terminal 숨기기. 다른 앱이 앞에 오면 등록을 풀어 그 앱의 `Cmd+H`는 그대로. 사용자는 `Ctrl+H`보다 손에 익은 `Cmd+H`를 눌렀다(2026-10-04).
 - 한 글자 단축키를 유지한다. Cmd 조합은 터미널이 앱에 넘기지 않아 못 쓴다(달 이동을 Cmd+방향키로 하려다 Shift·Option+방향키로 바꿈).
 - 보기: `v`로 월간 → 주간 → 목록. `[` `]`·제목 꺽쇠는 월간이면 한 달, 주간·목록이면 한 주. 목록 보기에선 `↑ ↓`도 하루. 마지막 보기는 `state.json` `view`.
 - 마우스(`mouse.go`): 왼쪽 클릭만. 클릭 = 그 항목을 고르고 `enter`(키 처리 함수를 그대로 부른다). 달력 칸은 누른 줄로 가른다(`cellLines` 순서): 일정 → 바로 상세(목록 없이), 빈 곳 → 새 일정, 날짜 줄·`+N개 더` → 일정 목록(사용자 지시: enter 흉내보다 바로 열기). 월 제목 양옆 `‹` `›` → 달 이동, 가운데 제목 → 월 이동 창(`g`). 2배 크기 제목 줄의 클릭 x는 Terminal이 2배 크기 칸 단위로 준다(화면 칸의 절반. 화면 칸으로 보고 2로 나눴다가 안 눌렸다, 키 로그로 확인). 좌표는 View와 같은 계산(`layout`·`titleLayout`·`scroll`, 모달은 `overlay`의 가운데 정렬)으로 되짚고, 버튼은 그 줄에서 `buttons()` 글자를 찾아 판정한다. 휠은 쓰지 않는다(트랙패드 관성으로 달이 마구 넘어감). 클릭은 키 로그에 `click x,y`로 남는다.
@@ -132,7 +135,7 @@ README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·�
 - `Calendar TUI.app`은 실행기다. `Contents/MacOS/launcher`(`scripts/launcher.swift`, AppKit만, 창 없음)가 Terminal에서 제목에 `▦ 캘린더`가 든 창을 찾아 앞으로 가져오고, 없으면 새 창에서 캘린더를 실행한다. Terminal을 처음 켜는 경우엔 생기는 빈 창을 그대로 쓴다.
 - 실행기는 캘린더가 떠 있는 동안 같이 상주한다(Dock 실행 점이 보이도록 — 처음엔 창을 띄우고 바로 끝나 점이 꺼졌다). Dock 아이콘 재클릭(`applicationShouldHandleReopen`)·Cmd+Tab(`applicationDidBecomeActive`) 때 캘린더 창을 앞으로. 캘린더 pid의 종료를 `DispatchSource.makeProcessSource`로 받아 같이 끝난다(폴링 없음). Dock에서 실행기를 종료하면 캘린더에 SIGTERM. 실측 phys_footprint 14MB.
 - 실행기 메모리(2026-10-04 실측): 14MB 중 12MB는 빈 앱 번들(Dock 아이콘만)의 하한선이고, 나머지 2MB는 상주하는 AppleScript 엔진(`NSAppleScript`)이다. `osascript` 자식 프로세스로 바꾸면 12MB가 되지만 이득이 작고 활성화마다 프로세스를 띄워야 해서 그대로 둔다. 더 줄이려면 상주를 포기해야 한다(Dock 실행 점·Cmd+Tab 복귀를 잃음).
-- 창 크기 기억: 캘린더가 `WindowSizeMsg`마다(값이 바뀔 때만) 글자 칸 수를 `state.json`의 `windowCols`·`windowRows`에 적고, 실행기가 새 창을 그 크기(`number of columns/rows`)로 연다. 기억한 값이 없으면 화면을 거의 채운다. 위치는 기억하지 않는다(사용자 요청은 크기). 글꼴 크기(Cmd +/-)도 기억한다: 캘린더가 종료 직전 자기 탭(tty로 찾음)의 `font size`를 AppleScript로 읽어 `fontSize`에 적고(`fontsize_darwin.go`, 제자리 재시작 땐 건너뜀), 실행기가 새 창에 글꼴 → 칸 수 순서로 적용한다. Terminal 안에서 Terminal에 묻는 것이라 자동화 권한 창이 뜨지 않았다(2026-10-04 확인). 실행기가 앞으로 가져올 때 읽는 안은 마지막 변경을 놓칠 수 있어 버렸다.
+- 창 크기 기억: 캘린더가 `WindowSizeMsg`마다(값이 바뀔 때만) 글자 칸 수를 `state.json`의 `windowCols`·`windowRows`에 적고, 실행기가 새 창을 그 크기(`number of columns/rows`)로 연다. 기억한 값이 없으면 화면을 거의 채운다. 위치는 기억하지 않는다(사용자 요청은 크기). 글꼴 크기(Cmd +/-)도 기억한다: 캘린더가 종료 직전 자기 탭(tty로 찾음)의 `font size`를 AppleScript로 읽어 `fontSize`에 적고(`terminal_darwin.go` `termFontSize`, 제자리 재시작 땐 건너뜀), 실행기가 새 창에 글꼴 → 칸 수 순서로 적용한다. Terminal 안에서 Terminal에 묻는 것이라 자동화 권한 창이 뜨지 않았다(2026-10-04 확인). 실행기가 앞으로 가져올 때 읽는 안은 마지막 변경을 놓칠 수 있어 버렸다.
 - 캘린더 바이너리는 번들 밖 `~/Library/Application Support/calendar-tui/calendar`(설치 때 복사, `dev.sh`가 교체). 없으면 번들 안 `Resources/calendar`.
 - 창 제목은 앱이 `tea.SetWindowTitle("▦ 캘린더")`로 정한다(`main.go` `windowTitle`). 처음엔 `calendar-tui`였는데 폴더명이 같은 다른 Terminal 창(Claude 세션)이 걸려 바꿨다.
 - 새 창은 화면 크기(AppleScriptObjC `NSScreen`)에 맞춰 키운다. Finder에 화면 크기를 물으면 자동화 권한 창이 하나 더 떠서 쓰지 않는다.

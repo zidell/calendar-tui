@@ -2,6 +2,7 @@
 // Dock에 실행 중 점을 보여 주고 Dock 클릭·Cmd+Tab 때 캘린더 창을 앞으로 가져온다. 캘린더가 끝나면 같이 끝난다.
 // 창·터미널 화면은 없다(그리는 건 Terminal). 빌드: scripts/package.sh
 import AppKit
+import Carbon.HIToolbox
 
 // 바이너리는 번들 밖에 둔다(dev.sh가 갈아 끼워도 앱 서명이 바뀌지 않게). 없으면 번들 안 것을 쓴다.
 let supportBin = FileManager.default.homeDirectoryForCurrentUser
@@ -74,13 +75,67 @@ func calendarPID() -> pid_t? {
     return s.split(separator: "\n").first.flatMap { pid_t($0) }
 }
 
+// Cmd+H: Terminal이 맨 앞일 때만 실행기가 가로챈다(Carbon 단축키, 손쉬운 사용 권한 필요 없음).
+// 맨 앞 창이 캘린더면 그 창만 숨기고(Cmd+H는 원래 Terminal 창을 모두 숨긴다), 아니면 원래처럼 Terminal을 숨긴다.
+// 다른 앱이 앞에 오면 등록을 풀어 그 앱의 Cmd+H는 건드리지 않는다. 숨긴 창은 showCalendar(Dock 클릭·Cmd+Tab)가 다시 보인다.
+let hideScript = NSAppleScript(source: """
+tell application "Terminal"
+    if (count windows) > 0 then
+        set w to front window
+        if name of w contains "▦ 캘린더" or name of w contains "▦ Calendar" then
+            set visible of w to false
+            return "calendar"
+        end if
+    end if
+end tell
+return "other"
+""")
+
+final class CmdH {
+    var ref: EventHotKeyRef?
+
+    init() {
+        var spec = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
+        InstallEventHandler(GetApplicationEventTarget(), { _, _, _ in
+            DispatchQueue.main.async { CmdH.pressed() }
+            return noErr
+        }, 1, &spec, nil, nil)
+        let ws = NSWorkspace.shared.notificationCenter
+        ws.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] n in
+            let app = n.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+            self?.set(app?.bundleIdentifier == "com.apple.Terminal")
+        }
+        set(NSWorkspace.shared.frontmostApplication?.bundleIdentifier == "com.apple.Terminal")
+    }
+
+    func set(_ on: Bool) {
+        if on, ref == nil {
+            RegisterEventHotKey(UInt32(kVK_ANSI_H), UInt32(cmdKey), EventHotKeyID(signature: OSType(0x6361_6c68), id: 1),
+                                GetApplicationEventTarget(), 0, &ref)
+        } else if !on, let r = ref {
+            UnregisterEventHotKey(r)
+            ref = nil
+        }
+    }
+
+    static func pressed() {
+        var err: NSDictionary?
+        let r = hideScript?.executeAndReturnError(&err).stringValue
+        if r != "calendar" {
+            NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Terminal").first?.hide()
+        }
+    }
+}
+
 final class Delegate: NSObject, NSApplicationDelegate {
     var exitWatch: DispatchSourceProcess?
     var pid: pid_t = 0
+    var cmdH: CmdH?
 
     func applicationDidFinishLaunching(_ n: Notification) {
         showCalendar()
         watch(tries: 20)
+        cmdH = CmdH()
     }
 
     // 캘린더가 뜰 때까지(최대 약 10초) pid를 찾고, 그다음엔 종료 알림만 기다린다(폴링 없음).

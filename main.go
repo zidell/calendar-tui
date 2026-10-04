@@ -196,6 +196,10 @@ func (m model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.String() == "ctrl+c" {
 			return m, tea.Quit
 		}
+		// Ctrl+H: 이 창만 숨긴다(Cmd+H는 Terminal 앱 전체를 숨김). 글자 칸에선 지우기 키라 그대로 둔다
+		if msg.String() == "ctrl+h" && !m.textInput() {
+			return m, func() tea.Msg { hideWindow(); return nil }
+		}
 		if m.top() == mNone {
 			return m.updateCal(msg)
 		}
