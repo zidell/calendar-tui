@@ -9,31 +9,32 @@ Built with Go + [Bubble Tea](https://github.com/charmbracelet/bubbletea) + Lip G
 
 ## Requirements
 
-- macOS (uses EventKit). On other OSes it only runs with mock events.
-- Go and the Xcode Command Line Tools (EventKit and input-source APIs are called through cgo).
+- macOS (calendars are read through EventKit). Tuned for Terminal.app.
 - Calendar accounts: add Google, iCloud, etc. in System Settings → Internet Accounts. You don't need to use the Apple Calendar app.
-- Tuned for Terminal.app (Terminal on macOS 15 supports 256 colors).
 
-## Install and run
+## Install
 
 ```sh
-scripts/package.sh --install   # installs /Applications/Calendar TUI.app and pins it to the Dock
+curl -fsSL https://zidell.github.io/calendar-tui/install.sh | bash
 ```
+
+Downloads the latest release (Apple Silicon & Intel), installs `/Applications/Calendar TUI.app` and pins it to the Dock. Run the same command again to update (your settings are kept). Website: https://zidell.github.io/calendar-tui/
+
+To uninstall, move `/Applications/Calendar TUI.app` and `~/Library/Application Support/calendar-tui` to the Trash.
+
+To build and install from source (needs Go and the Xcode Command Line Tools):
+
+```sh
+git clone https://github.com/zidell/calendar-tui.git
+cd calendar-tui && scripts/package.sh --install
+```
+
+## Run
 
 - Click `Calendar TUI` (calendar icon) in the Dock, or open it from Launchpad or Spotlight. If a calendar window is already open it comes to the front; otherwise a Terminal window opens (filling the screen the first time). Window size and font size (`Cmd +/-`) are remembered for the next launch (font size is saved when you quit). While the calendar is running the Dock shows a running dot, and quitting the calendar (`q`) quits the app too.
-- On first launch macOS asks to let "Calendar TUI control Terminal". Allow it so the app can open the window.
-- To run without the app bundle:
-
-```sh
-go build -o calendar .
-./calendar          # use your Mac calendar accounts
-./calendar -mock    # in-memory mock events
-```
-
-- On first run macOS asks to let "Terminal access Calendars". Allow it (if denied, the app prints instructions and exits). To change it later: System Settings → Privacy & Security → Calendars.
+- On first launch macOS asks twice: to let "Calendar TUI control Terminal" (to open the window) and to let "Terminal access Calendars" (to read events). Allow both. If calendar access is denied, the app prints instructions and exits. To change it later: System Settings → Privacy & Security → Calendars / Automation.
 - Saves and deletes are synced to the account (Google, etc.) by macOS.
-- Changes made on other devices or apps appear as soon as macOS syncs them into the local calendar database (EventKit change notification). The app also re-reads when you return to the terminal window and when you press `r`, and once an hour as a fallback. How often macOS fetches from Google is up to macOS.
-- Windows: cross-build with `GOOS=windows GOARCH=amd64 go build -o calendar.exe .` (mock events only, not tested on a real machine).
+- Changes made on other devices or apps appear as soon as macOS syncs them into the local calendar database. The app also re-reads when you return to the terminal window and when you press `r`, and once an hour as a fallback. How often macOS fetches from Google is up to macOS.
 
 ## Screen
 

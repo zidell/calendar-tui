@@ -9,31 +9,32 @@ Go + [Bubble Tea](https://github.com/charmbracelet/bubbletea) + Lip Gloss로 만
 
 ## 필요한 것
 
-- macOS (EventKit 사용). 다른 OS에서는 목업 일정으로만 뜬다.
-- Go, Xcode 커맨드라인 도구(cgo로 EventKit·입력 소스 API를 부른다).
+- macOS(캘린더는 EventKit으로 읽는다). Terminal.app 기준으로 다듬었다.
 - 캘린더 계정: 시스템 설정 → 인터넷 계정에 구글·iCloud 등을 추가해 둔다. Apple 캘린더 앱을 쓸 필요는 없다.
-- Terminal.app 기준으로 다듬었다(macOS 15 Terminal은 256색).
 
-## 설치·실행
+## 설치
 
 ```sh
-scripts/package.sh --install   # /Applications/Calendar TUI.app 설치 + Dock 고정
+curl -fsSL https://zidell.github.io/calendar-tui/install.sh | bash
 ```
+
+최신 릴리스(Apple Silicon·Intel)를 받아 `/Applications/Calendar TUI.app`에 설치하고 Dock에 고정한다. 같은 명령을 다시 실행하면 업데이트된다(설정은 그대로). 소개 페이지: https://zidell.github.io/calendar-tui/
+
+지우려면 `/Applications/Calendar TUI.app`과 `~/Library/Application Support/calendar-tui`를 휴지통으로 옮긴다.
+
+소스에서 빌드해 설치하려면(Go, Xcode 커맨드라인 도구 필요):
+
+```sh
+git clone https://github.com/zidell/calendar-tui.git
+cd calendar-tui && scripts/package.sh --install
+```
+
+## 실행
 
 - Dock의 `Calendar TUI`(달력 아이콘)를 누른다. Launchpad·Spotlight에서도 된다. 캘린더 창이 이미 떠 있으면 그 창을 앞으로 가져오고, 없으면 Terminal 창을 화면 가득 띄워 실행한다. 창 크기와 글꼴 크기(`Cmd +/-`)를 기억했다가 다음 실행 때 그대로 연다(글꼴 크기는 종료할 때 기억). 캘린더가 떠 있는 동안 Dock에 실행 중 점이 보이고, 캘린더를 끄면(`q`) 같이 꺼진다.
-- 처음 실행할 때 "Calendar TUI가 Terminal을 제어" 권한을 묻는다. 허용해야 창을 띄울 수 있다.
-- 앱 없이 직접 실행하려면:
-
-```sh
-go build -o calendar .
-./calendar          # 맥 캘린더 계정 사용
-./calendar -mock    # 메모리 목업 일정
-```
-
-- 첫 실행 때 "터미널이 캘린더에 접근" 권한 창이 뜬다. 허용해야 한다(거부하면 안내를 찍고 종료). 나중에 바꾸려면 시스템 설정 → 개인정보 보호 및 보안 → 캘린더.
+- 처음 실행할 때 권한 창이 두 번 뜬다. "Calendar TUI가 Terminal을 제어"(창을 띄우려고)와 "터미널이 캘린더에 접근"(일정을 읽으려고)을 모두 허용한다. 캘린더 접근을 거부하면 안내를 찍고 끝난다. 나중에 바꾸려면 시스템 설정 → 개인정보 보호 및 보안 → 캘린더·자동화.
 - 저장·삭제하면 macOS가 해당 계정(구글 등)으로 동기화한다.
-- 다른 기기·앱에서 바꾼 일정은 macOS가 계정을 동기화해 맥 캘린더 DB가 바뀌는 즉시 화면에 반영된다(EventKit 변경 알림). 터미널 창으로 돌아올 때와 `r`을 누를 때도 다시 읽고, 혹시 알림을 놓쳐도 1시간마다 한 번 다시 읽는다. 구글 서버 → 맥으로 가져오는 주기는 macOS가 정한다.
-- Windows: `GOOS=windows GOARCH=amd64 go build -o calendar.exe .`로 교차 빌드(목업 일정, 실기기 미확인).
+- 다른 기기·앱에서 바꾼 일정은 macOS가 계정을 동기화해 맥 캘린더 DB가 바뀌는 즉시 화면에 반영된다. 터미널 창으로 돌아올 때와 `r`을 누를 때도 다시 읽고, 혹시 놓쳐도 1시간마다 한 번 다시 읽는다. 구글 서버 → 맥으로 가져오는 주기는 macOS가 정한다.
 
 ## 화면
 

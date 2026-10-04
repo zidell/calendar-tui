@@ -4,6 +4,17 @@
 
 ## 작업 방식
 
+README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·화면·조작·설정). 빌드·테스트·개발 실행·설계는 이 파일에 둔다. 두 README는 같은 내용으로 맞춘다.
+
+- 빌드와 실행(개발):
+  ```sh
+  go build -o calendar .
+  ./calendar          # 맥 캘린더 계정(EventKit). 권한은 실행한 터미널 앱 기준
+  ./calendar -mock    # 메모리 목업 일정(설정 파일은 읽기만). 쓰기 경로 검증은 이걸로
+  go test .           # 빠른 추가·시각 해석 테스트
+  ```
+- 필요한 것: Go, Xcode 커맨드라인 도구(cgo로 EventKit·입력 소스 API를 부른다). 다른 OS에선 빌드 태그로 목업만 붙는다.
+
 - 코드를 고친 뒤에는 묻지 말고 항상 `./dev.sh`를 실행해 사용자가 바로 확인할 수 있게 한다.
   - 앱이 설치돼 있으면 앱이 쓰는 바이너리 `~/Library/Application Support/calendar-tui/calendar`를 바꾼다(옆에 쓰고 `mv`로 교체 — 실행 중인 파일을 덮어쓰면 프로세스가 죽을 수 있다). 그래서 앱으로 띄운 창도 제자리에서 갱신된다. 앱 번들은 건드리지 않는다(서명이 바뀌면 Terminal 제어 권한을 다시 묻는다).
   - 앱이 떠 있지 않으면 `Calendar TUI.app`을 연다(앱이 설치돼 있지 않으면 Terminal 창을 직접 띄운다).
@@ -37,6 +48,8 @@
 | `keylog.go` | 키 입력 로그(기본 꺼짐, `config.toml` `[debug] key_log`. 입력한 글자도 남아서 공개 전 기본값을 끔) |
 | `dev.sh`, `scripts/term-run.sh` | 개발용 실행 |
 | `scripts/package.sh` | 앱 번들(`dist/Calendar TUI.app`) 만들기, `--install`이면 `/Applications`에 설치하고 Dock에 고정 |
+| `scripts/release.sh` | 릴리스: `scripts/release.sh v0.1.0` → 유니버설 번들 zip(`Calendar-TUI-macos.zip`)을 태그와 함께 GitHub Releases에 올림 |
+| `docs/` | GitHub Pages(https://zidell.github.io/calendar-tui/): 소개 페이지 `index.html`, 설치 스크립트 `install.sh`(`curl … \| bash`) |
 | `scripts/launcher.swift` | 앱 실행기(상주): Dock 실행 점, Dock 클릭·Cmd+Tab 때 캘린더 창 앞으로, 캘린더 종료 시 같이 종료 |
 | `scripts/make-icon.swift`, `assets/icon-1024.png` | 앱 아이콘 생성기와 결과(어두운 바탕·빨간 머리띠·달력 격자·오늘 칸 흰 테두리) |
 
@@ -175,6 +188,14 @@
 ### 이미지·첨부 (미구현 방침)
 
 - TUI 안에서 그리지 않고 OS 기본 앱으로 연다(`open`/`start`, 잠깐 보기는 `qlmanage -p`). Terminal.app은 kitty·iTerm2·Sixel 이미지 프로토콜을 지원하지 않고, Bubble Tea 재그리기와도 충돌한다.
+
+### 배포 (2026-10-04)
+
+- 저장소 공개, MIT. 설치는 `curl -fsSL https://zidell.github.io/calendar-tui/install.sh | bash` 한 줄: 최신 릴리스 zip을 받아 `/Applications`에 넣고 실행 파일을 `~/Library/Application Support/calendar-tui/`에 두고 Dock에 고정한다. 다시 실행하면 업데이트(실행 중이면 새 실행 파일을 감지해 제자리 재시작).
+- 공증(연 $99) 없이 되는 이유: 브라우저로 받은 파일엔 격리 표시(`com.apple.quarantine`)가 붙어 Gatekeeper가 막지만 `curl`로 받은 파일엔 붙지 않는다. 번들은 ad-hoc 서명이라 Apple Silicon에서도 실행된다. 그래서 zip을 브라우저로 받아 여는 안내는 하지 않는다.
+- 릴리스는 유니버설(arm64 + x86_64, `UNIVERSAL=1`): Go는 `CC="clang -arch x86_64"`로 cgo 교차 빌드 후 `lipo`, 실행기는 `swiftc -target`. 인텔 실기기 확인은 못 했다. 버전은 `-ldflags -X main.version`과 Info.plist에 같이 넣는다(`calendar --version`).
+- 설치 스크립트 시험은 `ZIP_URL=file://… APP_DIR=… SUPPORT_DIR=… NO_DOCK=1 bash docs/install.sh`로 임시 폴더에(실제 설치를 건드리면 Terminal 제어 권한을 다시 묻는다).
+- 윈도우는 배포하지 않는다: 윈도우엔 EventKit처럼 시스템 계정 일정을 앱에 주는 창구가 사실상 없다(WinRT `AppointmentStore`는 패키지 신원이 필요하고, 데이터를 채우던 "메일 및 일정" 앱이 새 Outlook으로 바뀜 — 미확인 지식). 목업만 보이는 앱을 내놓지 않으려고 뺐다. 윈도우는 Google API·Graph 백엔드가 생기면 다시 본다.
 
 ### Dock 패키징 (미구현, 1안 채택)
 

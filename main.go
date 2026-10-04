@@ -601,7 +601,11 @@ func (m model) updateGoto(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+// version은 릴리스 빌드 때 -ldflags "-X main.version=v0.1.0"으로 넣는다(scripts/package.sh).
+var version = "dev"
+
 func main() {
+	showVersion := flag.Bool("version", false, "버전을 출력하고 끝낸다")
 	useMock := flag.Bool("mock", false, "EventKit 대신 메모리 목업 일정 사용(설정 파일은 읽기만 함)")
 	configPath := flag.Bool("config-path", false, "설정 파일(config.toml) 절대 경로를 출력하고 끝낸다. 파일이 아직 없으면 처음 실행할 때 만들어질 경로")
 	checkConfig := flag.Bool("check-config", false, "config.toml을 검사해 오류를 출력하고 끝낸다(정상이면 종료 코드 0)")
@@ -610,6 +614,9 @@ func main() {
 	// 경로·검사 명령은 설정을 읽기만 하고(옮기기·쓰기 없이) 권한 요청 전에 끝낸다
 	path := (&settings{dir: configDir()}).configPath()
 	switch {
+	case *showVersion:
+		fmt.Println("calendar-tui", version)
+		return
 	case *configPath:
 		fmt.Println(path)
 		return
