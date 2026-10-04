@@ -131,6 +131,20 @@ func (m model) pop() model {
 	return m
 }
 
+// syncToday는 날짜가 바뀌었으면(자정을 넘겨 띄워 둔 창) 오늘을 새로 잡는다. 커서가 옛 오늘에 있었으면
+// 따라가서 보이는 달·주도 오늘 것으로 바뀐다. 모달이 열려 있으면 커서는 그대로 둔다(보던 일정 기준).
+func (m model) syncToday() model {
+	t := dateOf(time.Now())
+	if t.Equal(m.today) {
+		return m
+	}
+	if m.cursor.Equal(m.today) && m.top() == mNone {
+		m.cursor = t
+	}
+	m.today = t
+	return m
+}
+
 func (m model) move(t time.Time) model {
 	m.cursor = t
 	return m
@@ -164,6 +178,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		logLine("focus in")
 		tellLauncher("focus 1")
 		m.db.invalidate()
+		m = m.syncToday()
 	case tea.BlurMsg:
 		logLine("focus out")
 		tellLauncher("focus 0")
@@ -190,6 +205,7 @@ func (m model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	case refreshMsg:
 		m.db.invalidate()
+		m = m.syncToday()
 		return m, refreshTick()
 	case configMsg:
 		m.db.invalidate() // config.toml도 다시 읽는다
