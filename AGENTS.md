@@ -216,4 +216,5 @@ UI는 그대로 두고 `backend` 구현체를 추가한다.
 
 ### 남은 일
 
+- `go.mod`가 아직 로컬 `replace github.com/zidell/tuidock => ../tuidock`다(tuidock 공개 전, 2026-10-06). 이대로 푸시하면 Actions 릴리스 빌드가 깨진다. 순서·확인 안 한 것은 tuidock 레포(`~/Sites/tuidock`) `AGENTS.md` "현재 상태와 남은 일".
 - 실제 구글 캘린더 쓰기 경로(추가·수정·삭제·반복 범위·알림·URL)는 사용자가 직접 확인 전(목업으로만 검증).
