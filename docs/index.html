@@ -58,22 +58,20 @@
 </p>
 
 <p>
-<span data-l="ko">맥북 기준, 시스템에 설정된 iCloud/Google 캘린더 정보 기반으로 TUI상에서 간단하게 사용할 목적으로 개발됨</span>
+<span data-l="ko">맥북 기준, 시스템에 설정된 iCloud/Google 캘린더 정보 기반으로 TUI상에서 간단하게 사용할 목적으로 개발했다.</span>
 <span data-l="en" hidden>For Mac. Built for simple use in a TUI, based on the iCloud/Google calendars set up in your system.</span>
 </p>
 
 <h2><span data-l="ko">설치</span><span data-l="en" hidden>Install</span></h2>
 
-<pre>curl -fsSL https://zidell.github.io/calendar-tui/install.sh | bash</pre>
+<pre style="background: #f0f0f0; padding: 12px; overflow-x: auto">curl -fsSL https://zidell.github.io/calendar-tui/install.sh | bash</pre>
 
 <p>
-<span data-l="ko">macOS 14 이상 · Apple Silicon·Intel · 설치 후 터미널에서 <code>calendar-tui</code>를 실행하세요. 같은 명령으로 업데이트합니다.</span>
+<span data-l="ko">macOS 14 이상 · Apple Silicon·Intel · 설치 후 터미널에서 <code>calendar-tui</code>를 실행한다. 같은 명령으로 업데이트한다.</span>
 <span data-l="en" hidden>macOS 14+ · Apple Silicon &amp; Intel · Then run <code>calendar-tui</code> in your terminal. Run the same command to update.</span>
 </p>
 
 <p><img src="screenshot.png" alt="calendar-tui month view" width="700" height="479"></p>
-
-<hr>
 
 <h2 id="keys"><span data-l="ko">주요 키</span><span data-l="en" hidden>Main keys</span></h2>
 
@@ -86,23 +84,19 @@
 <tr><td><kbd>esc</kbd> · <kbd>q</kbd></td><td><span data-l="ko">창 닫기(취소) · 종료</span><span data-l="en" hidden>Close window (cancel) · quit</span></td></tr>
 </table>
 
-<hr>
-
 <h2><span data-l="ko">처음 실행할 때</span><span data-l="en" hidden>First launch</span></h2>
 
 <ul>
-<li><span data-l="ko">캘린더 계정은 시스템 설정 → 인터넷 계정에 추가해 둔 구글·iCloud 등을 그대로 씁니다.</span><span data-l="en" hidden>It uses the Google, iCloud and other accounts in System Settings → Internet Accounts.</span></li>
-<li><span data-l="ko">“터미널이 캘린더에 접근” 권한 창을 허용합니다.</span><span data-l="en" hidden>Allow the “Terminal wants to access Calendars” prompt.</span></li>
-<li><span data-l="ko">일정은 네트워크로 보내지 않습니다. macOS 캘린더 데이터베이스를 직접 읽고, 동기화는 macOS가 합니다.</span><span data-l="en" hidden>Nothing is sent over the network. It reads the macOS calendar database directly; macOS does the syncing.</span></li>
-<li><span data-l="ko">지우려면 <code>~/.local/bin/calendar-tui</code>와 <code>~/Library/Application Support/calendar-tui</code>를 지웁니다.</span><span data-l="en" hidden>To uninstall, delete <code>~/.local/bin/calendar-tui</code> and <code>~/Library/Application Support/calendar-tui</code>.</span></li>
+<li><span data-l="ko">캘린더 계정은 시스템 설정 → 인터넷 계정에 추가해 둔 구글·iCloud 등을 그대로 쓴다.</span><span data-l="en" hidden>It uses the Google, iCloud and other accounts in System Settings → Internet Accounts.</span></li>
+<li><span data-l="ko">“터미널이 캘린더에 접근” 권한 창을 허용한다.</span><span data-l="en" hidden>Allow the “Terminal wants to access Calendars” prompt.</span></li>
+<li><span data-l="ko">일정은 네트워크로 보내지 않는다. macOS 캘린더 데이터베이스를 직접 읽고, 동기화는 macOS가 한다.</span><span data-l="en" hidden>Nothing is sent over the network. It reads the macOS calendar database directly; macOS does the syncing.</span></li>
+<li><span data-l="ko">지우려면 <code>~/.local/bin/calendar-tui</code>와 <code>~/Library/Application Support/calendar-tui</code>를 지운다.</span><span data-l="en" hidden>To uninstall, delete <code>~/.local/bin/calendar-tui</code> and <code>~/Library/Application Support/calendar-tui</code>.</span></li>
 </ul>
 
 <p><span data-l="ko">소스에서 빌드하려면(Go, Xcode 커맨드라인 도구 필요):</span><span data-l="en" hidden>To build from source (needs Go and the Xcode Command Line Tools):</span></p>
 
 <pre>git clone https://github.com/zidell/calendar-tui.git
 cd calendar-tui &amp;&amp; go build -o calendar-tui . &amp;&amp; mv calendar-tui ~/.local/bin/</pre>
-
-<hr>
 
 <address>calendar-tui · GPL-3.0 License · <a href="https://github.com/zidell/calendar-tui">github.com/zidell/calendar-tui</a></address>
 
