@@ -142,7 +142,9 @@ func (m model) clickAgenda(y int) (tea.Model, tea.Cmd) {
 	if i < 0 || i >= len(rows) {
 		return m, nil
 	}
-	m = m.move(rows[i].date)
+	if !sameDay(rows[i].date, m.cursor) {
+		return m.move(rows[i].date), nil
+	}
 	if e := rows[i].ev; e != nil {
 		m.detail, m.detailBtn = *e, 0
 		return m.push(mDetail), nil
@@ -416,7 +418,9 @@ func (m model) clickWeek(x, y int) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	d := wl.days[day]
-	m = m.move(d)
+	if !sameDay(d, m.cursor) {
+		return m.move(d), nil
+	}
 	switch {
 	case y == 3:
 		m.daySel = 0

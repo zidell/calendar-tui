@@ -10,11 +10,21 @@ import (
 )
 
 // 마우스는 왼쪽 클릭만 쓴다. 클릭은 그 항목을 고르고 enter를 친 것과 같다.
+// 달력 화면에선 고른 날이 아닌 날을 누르면 그날을 고르기만 한다(키보드로 옮긴 것처럼).
 // 좌표는 View와 같은 계산(layout·overlay·box)으로 되짚는다.
 
 var enterKey = tea.KeyMsg{Type: tea.KeyEnter}
 
+func sameDay(a, b time.Time) bool {
+	return a.Year() == b.Year() && a.YearDay() == b.YearDay()
+}
+
 func (m model) click(x, y int) (tea.Model, tea.Cmd) {
+	if y == m.height-1 { // 맨 아랫줄 도움말: 누른 단축키를 친 것과 같다(한글 입력 상태에서도 쓸 수 있게)
+		if k, ok := m.helpKeyAt(x); ok {
+			return m.Update(k)
+		}
+	}
 	if m.top() == mNone {
 		return m.clickCal(x, y)
 	}
@@ -165,7 +175,55 @@ func buttonAt(ln string, x int, labels ...string) int {
 	return -1
 }
 
-// clickCal은 달력 화면 클릭. 칸 안의 일정은 상세, 빈 곳은 새 일정, 날짜 줄은 일정 목록을 열고, 제목 양옆 꺽쇠는 달을 옮기고, 제목은 월 이동 창을 연다.
+// helpKeyAt은 도움말 줄 가로 위치 x에 있는 항목("a 빠른 추가")의 키. 화살표 항목·모르는 키는 없음.
+func (m model) helpKeyAt(x int) (tea.KeyMsg, bool) {
+	ln := m.help()
+	for _, e := range []string{m.db.err, m.db.cfg.err} { // View처럼 오류가 앞에 붙는다
+		if e != "" {
+			ln = " " + e + ln
+		}
+	}
+	at := 0
+	for i, part := range strings.Split(ln, " · ") {
+		if i > 0 {
+			at += 3
+		}
+		w := rw.StringWidth(part)
+		if x >= at && x < at+w {
+			f := strings.Fields(part)
+			if len(f) == 0 {
+				break
+			}
+			keys := []string{f[0]} // "/"는 키 자체
+			if f[0] != "/" {
+				keys = strings.FieldsFunc(f[0], func(r rune) bool { return r == '·' || r == '/' })
+			}
+			for _, k := range keys {
+				switch k {
+				case "tab":
+					return tea.KeyMsg{Type: tea.KeyTab}, true
+				case "enter":
+					return enterKey, true
+				case "esc":
+					return tea.KeyMsg{Type: tea.KeyEsc}, true
+				case "space":
+					return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(" ")}, true
+				case "ctrl+s":
+					return tea.KeyMsg{Type: tea.KeyCtrlS}, true
+				}
+				if r := []rune(k); len(r) == 1 && r[0] < 0x80 && r[0] != '[' {
+					return tea.KeyMsg{Type: tea.KeyRunes, Runes: r}, true
+				}
+			}
+			break
+		}
+		at += w
+	}
+	return tea.KeyMsg{}, false
+}
+
+// clickCal은 달력 화면 클릭. 고른 날이 아니면 그날을 고르기만 한다. 고른 날이면 칸 안의 일정은 상세, 빈 곳은 새 일정, 날짜 줄은 일정 목록을 연다.
+// 제목 양옆 꺽쇠는 달을 옮기고, 제목은 월 이동 창을 연다.
 func (m model) clickCal(x, y int) (tea.Model, tea.Cmd) {
 	g := m.layout(m.height - 1)
 	if y == 1 || y == 2 { // 2배 크기 제목 줄. Terminal은 이 줄의 가로 위치를 2배 크기 칸 단위로 준다(키 로그로 확인)
@@ -215,7 +273,10 @@ func (m model) clickCal(x, y int) (tea.Model, tea.Cmd) {
 	if wk < 0 || col < 0 || d < 1 || d > g.days {
 		return m, nil
 	}
-	m = m.move(time.Date(m.cursor.Year(), m.cursor.Month(), d, 0, 0, 0, 0, time.Local))
+	t := time.Date(m.cursor.Year(), m.cursor.Month(), d, 0, 0, 0, 0, time.Local)
+	if !sameDay(t, m.cursor) {
+		return m.move(t), nil
+	}
 	m.daySel = 0
 	// 칸 안의 줄은 cellLines 순서: 0 날짜, 1… 일정, 칸이 모자라면 마지막 줄 "+N개 더"
 	evs, ch := m.db.on(m.cursor), g.chs[wk]

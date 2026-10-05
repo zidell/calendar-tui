@@ -96,8 +96,10 @@ cd calendar-tui && go build -o calendar-tui . && mv calendar-tui ~/.local/bin/
 
 ### Mouse
 
-- Month: click an event in a cell → its details. An empty part of a cell → new event on that day. The date line or `+N more` → that day's event list.
+- Clicking a day other than the selected one just selects it (as if you moved there with the arrow keys). The rest applies to clicks on the selected day.
+- Month: an event in the cell → its details. An empty part of the cell → new event on that day. The date line or `+N more` → that day's event list.
 - Week: an event block → details, an empty hour → new event at that time, the date line → that day's event list. Agenda: an event line → details, a date line → that day's event list.
+- Clicking a shortcut in the help line at the bottom (`a quick add`, ...) is the same as pressing that key. Handy when a Korean (or other) input method swallows single-key shortcuts.
 - `‹` `›` beside the title → previous / next (month or week); the title itself → go to a month (`g`).
 - Clicking an event, button, setting or search result in a window selects it and presses `Enter`. The link line in the details opens the browser. In the form, click a field to move to it; all day toggles; repeat, alert and calendar step to the next value (click the `‹` side for the previous one).
 - Clicking outside the window (the dimmed area) closes it (same as `esc`; unsaved edits are dropped).
