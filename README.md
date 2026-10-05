@@ -31,7 +31,7 @@ cd calendar-tui && scripts/package.sh --install
 
 ## 실행
 
-- Dock의 `Calendar TUI`(달력 아이콘)를 누른다. Launchpad·Spotlight에서도 된다. 캘린더 창이 이미 떠 있으면 그 창을 앞으로 가져오고, 없으면 Terminal 창을 화면 가득 띄워 실행한다. 창 크기와 글꼴 크기(`Cmd +/-`)를 기억했다가 다음 실행 때 그대로 연다(글꼴 크기는 종료할 때 기억). 캘린더가 떠 있는 동안 Dock에 실행 중 점이 보이고, 캘린더를 끄면(`q`) 같이 꺼진다.
+- Dock의 `Calendar TUI`(달력 아이콘)를 누른다. Launchpad·Spotlight에서도 된다. 캘린더 창이 이미 떠 있으면 그 창을 앞으로 가져오고, 없으면 Terminal 창을 화면 가득 띄워 실행한다. 창 크기와 글꼴 크기(`Cmd +/-`)를 기억했다가 다음 실행 때 그대로 연다. 캘린더가 떠 있는 동안 Dock에 실행 중 점이 보이고, 캘린더를 끄면(`q`) 같이 꺼진다.
 - 처음 실행할 때 권한 창이 두 번 뜬다. "Calendar TUI가 Terminal을 제어"(창을 띄우려고)와 "터미널이 캘린더에 접근"(일정을 읽으려고)을 모두 허용한다. 캘린더 접근을 거부하면 안내를 찍고 끝난다. 나중에 바꾸려면 시스템 설정 → 개인정보 보호 및 보안 → 캘린더·자동화.
 - 저장·삭제하면 macOS가 해당 계정(구글 등)으로 동기화한다.
 - 다른 기기·앱에서 바꾼 일정은 macOS가 계정을 동기화해 맥 캘린더 DB가 바뀌는 즉시 화면에 반영된다. 터미널 창으로 돌아올 때와 `r`을 누를 때도 다시 읽고, 혹시 놓쳐도 1시간마다 한 번 다시 읽는다. 구글 서버 → 맥으로 가져오는 주기는 macOS가 정한다.
@@ -73,7 +73,7 @@ cd calendar-tui && scripts/package.sh --install
 | | `t` | 오늘로 |
 | | `r` | 새로고침 |
 | | `s` | 설정 |
-| | `Cmd+글자` | 그 글자 단축키와 같다(한글 입력 상태에서도 먹는다). `Cmd+F` 검색, `Cmd+,` 설정, `Cmd+Q`·`Cmd+W` 종료. 앱(Dock)으로 실행했을 때만 |
+| | `Cmd+글자` | 그 글자 단축키와 같다(한글 입력 상태에서도 먹는다). `Cmd+F` 검색, `Cmd+,` 설정, `Cmd+Q`·`Cmd+W` 종료, `Cmd+V` 글자 칸에 붙여넣기, `Cmd +/-` 글꼴 크기. 앱(Dock)으로 실행했을 때만: 캘린더 창에 있는 동안 Cmd 조합은 Terminal이 아니라 캘린더가 받는다(`Cmd+H`·`Cmd+M`·`` Cmd+` ``은 macOS 기본 동작) |
 | | `Cmd+H` · `Ctrl+H` | 캘린더 창만 숨기기(다른 Terminal 창은 그대로). Dock의 Calendar TUI를 누르거나 Cmd+Tab으로 고르면 다시 나온다. `Cmd+H`는 앱(Dock)으로 실행했을 때만 |
 | | `Enter` | 그날 일정 목록 |
 | | `q` | 종료 |
@@ -103,7 +103,7 @@ cd calendar-tui && scripts/package.sh --install
 - 제목 양옆 `‹` `›` → 이전 / 다음(달·주), 가운데 제목 → 월 이동 창(`g`).
 - 창 안의 일정·버튼·설정 항목·검색 결과 클릭 → 그것을 고르고 `Enter`. 상세의 링크 줄 → 브라우저로 열기. 폼에선 칸 클릭으로 이동, 하루 종일은 켜고 끄기, 반복·알림·캘린더는 다음 값으로(`‹` 쪽을 누르면 이전 값).
 - 창 바깥(흐린 영역) 클릭 → 닫기(`esc`와 같음, 고치던 내용은 버림).
-- 마우스를 앱이 받으므로 드래그로 글자를 고르려면 Terminal 메뉴 보기 → 마우스 보고 허용(`Cmd+R`)을 잠시 끈다.
+- 마우스를 앱이 받으므로 드래그로 글자를 고르려면 Terminal 메뉴 보기 → 마우스 보고 허용을 잠시 끈다(앱으로 실행했으면 `Cmd+R`은 캘린더가 받으므로 메뉴에서).
 
 ## 설정
 
@@ -112,7 +112,7 @@ cd calendar-tui && scripts/package.sh --install
 - **캘린더 선택**: 계정(구글·iCloud …)마다 그 아래 캘린더를 켜고 끈다. 계정을 끄면 그 계정의 캘린더가 모두 숨는다. 새로 생긴 계정·캘린더는 기본으로 보인다.
 - **표시**: 언어(자동·한국어·English), 테마(자동·어두운 배경·밝은 배경), 주 시작(일요일·월요일), 시각 표기(24시간·12시간), 좁을 때 고른 요일 최소 폭(영문 기준 글자 수, 0이면 넓히지 않음).
 - 설정 파일: `~/Library/Application Support/calendar-tui/config.toml`(경로 확인: `calendar --config-path`). `[display]`에 표시 설정, `[accounts]`·`[calendars]`에 계정·캘린더마다 `"ID" = true/false` 한 줄(줄 끝 주석이 이름). 항목마다 설명 주석이 있다. 직접 고쳐도 되고, 저장하면 실행 중인 앱이 바로 다시 읽는다. 검사: `calendar --check-config`(잘못되면 앱은 이전 값을 쓰고 화면 맨 아래에 오류).
-- 창 크기·글꼴 크기·마지막 보기·마지막으로 쓴 캘린더는 앱이 저절로 기억하는 값이라 같은 폴더 `state.json`에 따로 둔다. 예전 `settings.json`은 처음 실행 때 옮기고 `.bak`으로 남긴다.
+- 마지막 보기·마지막으로 쓴 캘린더는 앱이 저절로 기억하는 값이라 같은 폴더 `state.json`에 따로 둔다. 창 크기·글꼴 크기는 앱 실행기([tuidock](https://github.com/zidell/tuidock))가 기억한다. 예전 `settings.json`은 처음 실행 때 옮기고 `.bak`으로 남긴다.
 - AI 에이전트가 설치된 앱만 보고 설정을 찾아 고칠 수 있게 [Agent Configuration Accessibility](https://github.com/zidell/agent-configuration-accessibility) 컨벤션을 따른다: 앱 번들 `Contents/Resources/readme.txt`, `calendar --help`, 항목마다 설명 주석.
 
 ## 팁

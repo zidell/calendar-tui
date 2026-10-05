@@ -45,14 +45,13 @@ README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·�
 | `config.go` | 설정 파일: `config.toml`(사용자 설정)·`state.json`(앱이 기억하는 값), 예전 `settings.json` 옮기기 |
 | `assets/readme.txt` | 앱 번들 `Contents/Resources/readme.txt`(설치 사용자·에이전트용 설정 안내) |
 | `reload_*.go` | 새 빌드 감지 → 제자리 재시작 |
-| `terminal_darwin.go` | 내 Terminal 탭(tty)에 AppleScript: 글꼴 크기 읽기, 창 숨기기(`Ctrl+H`) |
 | `keylog.go` | 키 입력 로그(기본 꺼짐, `config.toml` `[debug] key_log`. 입력한 글자도 남아서 공개 전 기본값을 끔) |
 | `dev.sh`, `scripts/term-run.sh` | 개발용 실행 |
-| `scripts/package.sh` | 앱 번들(`dist/Calendar TUI.app`) 만들기, `--install`이면 `/Applications`에 설치하고 Dock에 고정 |
+| `scripts/package.sh` | 앱 번들(`dist/Calendar TUI.app`)을 `tuidock make`로 만들기, `--install`이면 `/Applications`에 설치하고 Dock에 고정 |
 | `scripts/release.sh` | 릴리스: `scripts/release.sh v0.1.1` → 확인 후 태그만 푸시. 빌드·업로드는 Actions |
 | `.github/workflows/release.yml` | `v*` 태그 푸시 → macOS 러너에서 테스트·유니버설 빌드 → Releases에 `Calendar-TUI-macos.zip`. 수동 실행은 빌드만(아티팩트) |
 | `docs/` | GitHub Pages(https://zidell.github.io/calendar-tui/): 소개 페이지 `index.html`, 설치 스크립트 `install.sh`(`curl … \| bash`) |
-| `scripts/launcher.swift` | 앱 실행기(상주): Dock 실행 점, Dock 클릭·Cmd+Tab 때 캘린더 창 앞으로, 캘린더 종료 시 같이 종료 |
+| (tuidock 모듈) | 앱 실행기. 별도 레포 [zidell/tuidock](https://github.com/zidell/tuidock)(로컬 `~/Sites/tuidock`), 버전은 `go.mod`가 고정. 캘린더는 Go 패키지 `tuidock`으로 실행기와 주고받는다(`main.go` `dock`) |
 | `scripts/make-icon.swift`, `assets/icon-1024.png` | 앱 아이콘 생성기와 결과(어두운 바탕·빨간 머리띠·달력 격자·오늘 칸 흰 테두리) |
 
 - UI는 `backend` 인터페이스(기간 조회 / 저장 / 삭제, 반복 범위 `span`)만 부른다. 나중에 Google API·CalDAV 구현체를 같은 자리에 붙인다.
@@ -91,11 +90,11 @@ README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·�
 
 ### 키
 
-- `Ctrl+H`는 캘린더 창만 숨긴다(사용자 요청: `Cmd+H`는 Terminal 앱 숨기기라 다른 터미널 창까지 사라진다. `Cmd+H` 자체는 Terminal이 먼저 받아 앱에 오지 않는다). 내 탭(tty)의 창을 AppleScript로 `visible false`(`terminal_darwin.go` `hideWindow`). 실행기가 Dock 클릭·Cmd+Tab 때 하는 `set index` + `activate`가 숨긴 창도 다시 보이게 해서 실행기는 고치지 않았다(2026-10-04 확인). 글자 칸에선 `Ctrl+H`가 지우기라 그대로 둔다.
-- `Cmd+글자`도 단축키로 쓴다(사용자 지시: "터미널의 탈을 썼지만 단독 앱처럼"). 입력기는 Cmd 조합을 조합하지 않아 한글·구름 상태와 상관없이 먹는다. Terminal은 Cmd 조합을 앱에 안 넘기므로 실행기가 받는다: 캘린더가 포커스 들어옴·나감을 `launcher.sock`에 `focus 1/0`으로 알리고, 실행기는 그동안만 Cmd+글자(C·V·H·M 제외)를 Carbon 단축키로 등록해 받으면 `calendar.sock`에 `key a`로 넘긴다(`ipc_unix.go`, `launcher.swift` `HotKeys`). `Cmd+Q`·`Cmd+W`는 캘린더 종료, `Cmd+F` 검색, `Cmd+,` 설정, 글자 칸에선 무시. Terminal은 포커스가 바뀔 때만 알려 주므로, 이미 포커스된 창에서 시작(재설치·제자리 재시작)하면 신호가 없어 Cmd가 경고음만 냈다 → 시작할 때 내 창이 맨 앞인지 AppleScript로 물어 `FocusMsg`를 만든다(`windowIsFront`). 입력 소스 자동 전환으로 끝내 못 잡은 한글 문제(아래)의 해법이다. 입력 소스를 ABC 등 다른 입력기로 바꾸는 안은 사용자가 거부(번거로움).
-- `Cmd+H`도 캘린더 창만 숨긴다: 실행기(`launcher.swift` `CmdH`)가 Terminal이 맨 앞일 때만 Carbon `RegisterEventHotKey`로 `Cmd+H`를 가로채(손쉬운 사용 권한 불필요), 맨 앞 창이 캘린더면 그 창만 `visible false`, 아니면 원래처럼 Terminal 숨기기. 다른 앱이 앞에 오면 등록을 풀어 그 앱의 `Cmd+H`는 그대로. 사용자는 `Ctrl+H`보다 손에 익은 `Cmd+H`를 눌렀다(2026-10-04).
-- 한 글자 단축키를 유지한다. Cmd 조합은 터미널이 앱에 넘기지 않아 못 쓴다(달 이동을 Cmd+방향키로 하려다 Shift·Option+방향키로 바꿈).
-- 보기: `v`로 월간 → 주간 → 목록. `1` `2` `3`(`Cmd+1~3`)은 월간·주간·목록으로 바로(사용자 지시: 월간이 1. 처음엔 macOS 캘린더 관례대로 목록·주간·월간이었다). `Cmd+V`는 붙여넣기라 못 씀. `[` `]`·제목 꺽쇠는 월간이면 한 달, 주간·목록이면 한 주. 목록 보기에선 `↑ ↓`도 하루. 마지막 보기는 `state.json` `view`.
+- `Ctrl+H`는 캘린더 창만 숨긴다(`Cmd+H`와 같다. 실행기에 `hide`를 보낸다). 실행기가 Dock 클릭·Cmd+Tab 때 하는 `set index` + `activate`가 숨긴 창도 다시 보이게 한다(2026-10-04 확인). 글자 칸에선 `Ctrl+H`가 지우기라 그대로 둔다.
+- `Cmd+글자`도 단축키로 쓴다(사용자 지시: "터미널의 탈을 썼지만 단독 앱처럼". 2026-10-06: "터미널은 껍데기일 뿐, 터미널 단축키는 다 없애고 TUI로"). 입력기는 Cmd 조합을 조합하지 않아 한글·구름 상태와 상관없이 먹는다. Terminal은 Cmd 조합을 앱에 안 넘기므로 실행기(tuidock)가 받는다: 캘린더가 포커스 들어옴·나감을 `dock.Focus`로 알리고, 실행기는 그동안만 Cmd·Cmd+Shift 조합을 전부 Carbon 단축키로 등록해 `key cmd+a` 꼴로 넘긴다. 넘기지 않는 것은 macOS 공통 동작인 `Cmd+H`(실행기가 이 창만 숨김)·`Cmd+M`(최소화)·`` Cmd+` ``(창 전환. 처음엔 넘겼는데 사용자가 다른 Terminal 창으로 못 가 연타한 게 키 로그에 남아 뺐다, 2026-10-06)과 스크린샷·로그아웃. 캘린더는 `Cmd+Q`·`Cmd+W` 종료, `Cmd+F` 검색, `Cmd+,` 설정, `Cmd+V` 글자 칸 붙여넣기(`tuidock.Paste`), `Cmd +/-` 글꼴(`dock.Font`), `Cmd+C`는 무시(단축키 c = 복제로 가면 놀람), 나머지 `Cmd+글자`는 그 글자 단축키(글자 칸에선 무시). 이미 포커스된 창에서 시작하면 Terminal이 포커스 신호를 안 줘서, 실행기가 `hello`를 받을 때 그 창이 맨 앞인지 직접 본다. 입력 소스 자동 전환으로 끝내 못 잡은 한글 문제(아래)의 해법이다. 입력 소스를 ABC 등 다른 입력기로 바꾸는 안은 사용자가 거부(번거로움).
+- `Cmd+H`도 캘린더 창만 숨긴다(사용자 지시: macOS 기본 숨김이라 작동해야 한다): 실행기가 Terminal이 맨 앞일 때만 Carbon `RegisterEventHotKey`로 `Cmd+H`를 가로채(손쉬운 사용 권한 불필요), 맨 앞 창이 캘린더면 그 창만 `visible false`, 아니면 원래처럼 Terminal 숨기기. 다른 앱이 앞에 오면 등록을 풀어 그 앱의 `Cmd+H`는 그대로.
+- 한 글자 단축키를 유지한다. Cmd 조합은 앱(Dock)으로 실행했을 때만 오므로 기본 조작에 쓰지 않는다(달 이동을 Cmd+방향키로 하려다 Shift·Option+방향키로 바꿈).
+- 보기: `v`로 월간 → 주간 → 목록. `1` `2` `3`(`Cmd+1~3`)은 월간·주간·목록으로 바로(사용자 지시: 월간이 1. 처음엔 macOS 캘린더 관례대로 목록·주간·월간이었다). `Cmd+V`는 붙여넣기라 보기 전환엔 못 씀. `[` `]`·제목 꺽쇠는 월간이면 한 달, 주간·목록이면 한 주. 목록 보기에선 `↑ ↓`도 하루. 마지막 보기는 `state.json` `view`.
 - 마우스(`mouse.go`): 왼쪽 클릭만. 클릭 = 그 항목을 고르고 `enter`(키 처리 함수를 그대로 부른다). 달력 칸은 누른 줄로 가른다(`cellLines` 순서): 일정 → 바로 상세(목록 없이), 빈 곳 → 새 일정, 날짜 줄·`+N개 더` → 일정 목록(사용자 지시: enter 흉내보다 바로 열기). 월 제목 양옆 `‹` `›` → 달 이동, 가운데 제목 → 월 이동 창(`g`). 2배 크기 제목 줄의 클릭 x는 Terminal이 2배 크기 칸 단위로 준다(화면 칸의 절반. 화면 칸으로 보고 2로 나눴다가 안 눌렸다, 키 로그로 확인). 좌표는 View와 같은 계산(`layout`·`titleLayout`·`scroll`, 모달은 `overlay`의 가운데 정렬)으로 되짚고, 버튼은 그 줄에서 `buttons()` 글자를 찾아 판정한다. 휠은 쓰지 않는다(트랙패드 관성으로 달이 마구 넘어감). 클릭은 키 로그에 `click x,y`로 남는다.
 - 한글 입력 상태에선 한 글자 단축키가 입력기에 붙잡혀(조합 중인 자모는 다음 키나 포커스 이동 때에야 넘어온다) 앱에 오지 않는다. 해법은 위 `Cmd+글자`이고, 앱은 입력 소스를 건드리지 않는다(2026-10-04 사용자 결정). 이력: 단축키 화면은 영문, 글자 칸은 원래 입력 소스로 앱이 자동 전환했다(Carbon TIS, `ime*.go`). 그러나 구름(세벌식 390)은 시스템엔 영문(`Gureum.system`)으로 보고되면서 내부는 한글 모드로 남아 키를 조합하는 불일치가 생겼고(키 로그로 확인), 강제 한글→영문 재전환·포커스 직후 재확인·한글 키 버리고 재전환까지 넣어도 다른 탭에 갔다 오면 재발해서 전부 걷어냈다. 프로그램으로 입력 소스를 바꾸는 것 자체가 구름 내부 모드와 어긋나는 원인일 수 있다(추정). 조합 중 마지막 글자에서 Enter를 치면 확정된 글자만 오고 Enter는 사라져 한 번 더 쳐야 한다(띄어쓰기는 확정 뒤 그대로 온다). 원시 바이트 프로브로 확인: 터미널 모드(대체 화면·마우스·포커스·붙여넣기)와 무관하고, 구름·맥 기본 입력기, Terminal.app·Ghostty, Claude Code 모두 같다(2026-10-04). 앱엔 조합 중 글자가 오지 않아(터미널이 덧그리기만 함) 브라우저처럼 조합 값을 읽는 우회도, 확정만 온 것을 Enter로 보는 우회도(입력 소스 전환·창 이동 확정과 구별 불가) 못 한다.
 
@@ -130,19 +129,16 @@ README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·�
 - 달 단위 캐시. 변경 알림·포커스 복귀·`r`·저장 후·1시간 주기로 무효화(아래 "바깥 변경 반영").
 - 빌드: cgo(Objective-C) → Xcode 커맨드라인 도구 필요. 윈도우 빌드에선 빌드 태그로 목업만.
 
-### 앱 패키징 (Dock 1안 구현)
+### 앱 패키징 (tuidock)
 
-- `Calendar TUI.app`은 실행기다. `Contents/MacOS/launcher`(`scripts/launcher.swift`, AppKit만, 창 없음)가 Terminal에서 제목에 `▦ 캘린더`가 든 창을 찾아 앞으로 가져오고, 없으면 새 창에서 캘린더를 실행한다. Terminal을 처음 켜는 경우엔 생기는 빈 창을 그대로 쓴다.
-- 실행기는 캘린더가 떠 있는 동안 같이 상주한다(Dock 실행 점이 보이도록 — 처음엔 창을 띄우고 바로 끝나 점이 꺼졌다). Dock 아이콘 재클릭(`applicationShouldHandleReopen`)·Cmd+Tab(`applicationDidBecomeActive`) 때 캘린더 창을 앞으로. 캘린더 pid의 종료를 `DispatchSource.makeProcessSource`로 받아 같이 끝난다(폴링 없음). Dock에서 실행기를 종료하면 캘린더에 SIGTERM. 실측 phys_footprint 14MB.
-- 실행기 메모리(2026-10-04 실측): 14MB 중 12MB는 빈 앱 번들(Dock 아이콘만)의 하한선이고, 나머지 2MB는 상주하는 AppleScript 엔진(`NSAppleScript`)이다. `osascript` 자식 프로세스로 바꾸면 12MB가 되지만 이득이 작고 활성화마다 프로세스를 띄워야 해서 그대로 둔다. 더 줄이려면 상주를 포기해야 한다(Dock 실행 점·Cmd+Tab 복귀를 잃음).
-- 창 크기 기억: 캘린더가 `WindowSizeMsg`마다(값이 바뀔 때만) 글자 칸 수를 `state.json`의 `windowCols`·`windowRows`에 적고, 실행기가 새 창을 그 크기(`number of columns/rows`)로 연다. 기억한 값이 없으면 화면을 거의 채운다. 위치는 기억하지 않는다(사용자 요청은 크기). 글꼴 크기(Cmd +/-)도 기억한다: 캘린더가 종료 직전 자기 탭(tty로 찾음)의 `font size`를 AppleScript로 읽어 `fontSize`에 적고(`terminal_darwin.go` `termFontSize`, 제자리 재시작 땐 건너뜀), 실행기가 새 창에 글꼴 → 칸 수 순서로 적용한다. Terminal 안에서 Terminal에 묻는 것이라 자동화 권한 창이 뜨지 않았다(2026-10-04 확인). 실행기가 앞으로 가져올 때 읽는 안은 마지막 변경을 놓칠 수 있어 버렸다.
-- 캘린더 바이너리는 번들 밖 `~/Library/Application Support/calendar-tui/calendar`(설치 때 복사, `dev.sh`가 교체). 없으면 번들 안 `Resources/calendar`.
-- 창 제목은 앱이 `tea.SetWindowTitle("▦ 캘린더")`로 정한다(`main.go` `windowTitle`). 처음엔 `calendar-tui`였는데 폴더명이 같은 다른 Terminal 창(Claude 세션)이 걸려 바꿨다.
-- 새 창은 화면 크기(AppleScriptObjC `NSScreen`)에 맞춰 키운다. Finder에 화면 크기를 물으면 자동화 권한 창이 하나 더 떠서 쓰지 않는다.
-- 캘린더 권한은 여전히 Terminal 기준(창이 Terminal 소속). 실행기는 Terminal 자동화 권한만 필요(`NSAppleEventsUsageDescription`).
-- 사용자에게 중요한 건 "Dock에서 따로 눌러 실행"이다(창이 Terminal 소속인 건 상관없음). 실행기는 창을 띄우고 바로 끝나 Dock에 남지 않으므로 `package.sh --install`이 Dock에 고정한다(`com.apple.dock persistent-apps`에 추가 후 `killall Dock`, 이미 있으면 건너뜀).
-- 버린 방식: 자체 창에 SwiftTerm을 넣은 Swift 앱(Dock·Cmd+Tab 독립). 실측 phys_footprint 껍데기 101MB + TUI 16MB로, Terminal 창 방식(+9MB)보다 훨씬 무거워 "배보다 배꼽"이라 되돌렸다(2026-10-04). 정말 독립 창이 필요해지면 껍데기를 얹지 말고 네이티브로 새로 만든다.
-- 번들은 ad-hoc 서명(`codesign -s -`). 키 로그를 번들 안에 쓰면 서명이 깨져서 `~/Library/Logs/calendar-tui/`로 옮겼다.
+- `Calendar TUI.app`은 [tuidock](https://github.com/zidell/tuidock) 실행기다(2026-10-06 분리, 사용자 지시: Fluid처럼 "터미널 바이너리는 그대로, Dock 실행기는 따로"). 처음엔 이 레포 `scripts/launcher.swift`였다. 실행기의 동작·설계 근거(상주, 창을 tty로 찾기, 창 크기·글꼴 기억, Cmd 단축키 가로채기, 메모리 실측, SwiftTerm을 버린 이유)는 tuidock 레포 `AGENTS.md`에 있다.
+- 만들기: `scripts/package.sh`가 `go list -m`로 찾은 tuidock 모듈의 `tuidock make`를 부른다. 실행기 버전은 `go.mod`의 tuidock 버전이 고정한다.
+- 캘린더 바이너리는 번들 밖 `~/Library/Application Support/calendar-tui/calendar`(`TUIDockCommand`, 설치 때 복사, `dev.sh`가 교체)를 먼저 쓰고, 없으면 번들 안 `Resources/calendar`(`TUIDockEmbedded`). 그래서 `dev.sh`가 갈아 끼워도 번들 서명이 그대로라 Terminal 제어 권한을 다시 묻지 않는다. 실행기를 다시 만들면(번들 재설치) 한 번 더 묻는다.
+- 캘린더 쪽 연결은 Go 패키지 `tuidock`(`main.go` `dock`): 포커스(`Focus`), 숨기기(`Hide`, `Ctrl+H`), 글꼴(`Font`, `Cmd +/-`), 종료 직전 `Close`(실행기가 창 크기·글꼴을 기억할 때까지 기다림, 제자리 재시작 땐 안 부름). 터미널에서 직접 실행하면 `dock`은 nil이고 아무것도 안 한다.
+- 창 크기·글꼴 크기는 실행기가 기억한다(`defaults read com.zidell.calendar-tui`). 예전엔 캘린더가 `state.json`에 적었다(`windowCols`·`windowRows`·`fontSize`, 이제 안 씀).
+- 창 제목 `▦ 캘린더`(`main.go` `windowTitle`)는 이제 표시용이다. 실행기는 창을 제목이 아니라 tty로 찾는다(예전엔 제목으로 찾다가 폴더명이 같은 다른 창이 걸렸다).
+- 캘린더 권한은 여전히 Terminal 기준(창이 Terminal 소속). 실행기는 Terminal 자동화 권한만 필요.
+- 번들은 ad-hoc 서명. 키 로그를 번들 안에 쓰면 서명이 깨져서 `~/Library/Logs/calendar-tui/`로 옮겼다.
 
 ### 설정 파일 (에이전트 접근성)
 
@@ -206,10 +202,6 @@ README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·�
 - 설치 스크립트 시험은 `ZIP_URL=file://… APP_DIR=… SUPPORT_DIR=… NO_DOCK=1 bash docs/install.sh`로 임시 폴더에(실제 설치를 건드리면 Terminal 제어 권한을 다시 묻는다).
 - 윈도우는 배포하지 않는다: 윈도우엔 EventKit처럼 시스템 계정 일정을 앱에 주는 창구가 사실상 없다(WinRT `AppointmentStore`는 패키지 신원이 필요하고, 데이터를 채우던 "메일 및 일정" 앱이 새 Outlook으로 바뀜 — 미확인 지식). 목업만 보이는 앱을 내놓지 않으려고 뺐다. 윈도우는 Google API·Graph 백엔드가 생기면 다시 본다.
 
-### Dock 패키징 (미구현, 1안 채택)
-
-- 도구마다 작은 실행기 `.app`: 그 도구의 Terminal 창(창 제목으로 식별)이 있으면 앞으로, 없으면 새로 실행. Cmd+Tab에는 여전히 "터미널" 하나.
-
 ## 로드맵
 
 ### 2단계: API 연동 + Windows
@@ -225,4 +217,3 @@ UI는 그대로 두고 `backend` 구현체를 추가한다.
 ### 남은 일
 
 - 실제 구글 캘린더 쓰기 경로(추가·수정·삭제·반복 범위·알림·URL)는 사용자가 직접 확인 전(목업으로만 검증).
-- 실행기 번들 재설치(영문 창 제목 찾기 반영) — 설치하면 Terminal 제어 권한을 한 번 더 묻는다.

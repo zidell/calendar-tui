@@ -15,11 +15,8 @@ import (
 // 숨긴 것만 적어 두므로 새로 생긴 계정·캘린더는 기본으로 보인다.
 type settings struct {
 	userConfig   `json:"-"` // config.toml: 표시 설정, 숨긴 계정(EKSource)·캘린더 ID
-	LastCalendar string     `json:"lastCalendar"` // 마지막으로 저장한 일정의 캘린더. 새 일정에 자동 선택
-	WindowCols   int        `json:"windowCols"`   // 마지막 창 크기(글자 칸). 앱 실행기가 새 창을 이 크기로 연다
-	WindowRows   int        `json:"windowRows"`
-	FontSize     float64    `json:"fontSize,omitempty"` // 마지막 Terminal 글꼴 크기. 종료 때 적고 실행기가 새 창에 적용한다
-	View         string     `json:"view,omitempty"`     // 마지막 보기(month·week·agenda)
+	LastCalendar string     `json:"lastCalendar"`   // 마지막으로 저장한 일정의 캘린더. 새 일정에 자동 선택
+	View         string     `json:"view,omitempty"` // 마지막 보기(month·week·agenda)
 	dir          string     // 설정 폴더. 비면 파일을 읽고 쓰지 않는다
 	readOnly     bool       // -mock: 읽기만 한다
 	err          string     // config.toml 오류. 이전 값을 계속 쓰고 화면 아래에 띄운다
