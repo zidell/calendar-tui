@@ -199,7 +199,7 @@ README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·�
 
 ### 배포 (2026-10-04)
 
-- 저장소 공개, MIT. 설치는 `curl -fsSL https://zidell.github.io/calendar-tui/install.sh | bash` 한 줄: 최신 릴리스 zip을 받아 `/Applications`에 넣고 실행 파일을 `~/Library/Application Support/calendar-tui/`에 두고 Dock에 고정한다. 다시 실행하면 업데이트(실행 중이면 새 실행 파일을 감지해 제자리 재시작).
+- 저장소 공개, GPL-3.0(2026-10-05 MIT에서 변경). 설치는 `curl -fsSL https://zidell.github.io/calendar-tui/install.sh | bash` 한 줄: 최신 릴리스 zip을 받아 `/Applications`에 넣고 실행 파일을 `~/Library/Application Support/calendar-tui/`에 두고 Dock에 고정한다. 다시 실행하면 업데이트(실행 중이면 새 실행 파일을 감지해 제자리 재시작).
 - 공증(연 $99) 없이 되는 이유: 브라우저로 받은 파일엔 격리 표시(`com.apple.quarantine`)가 붙어 Gatekeeper가 막지만 `curl`로 받은 파일엔 붙지 않는다. 번들은 ad-hoc 서명이라 Apple Silicon에서도 실행된다. 그래서 zip을 브라우저로 받아 여는 안내는 하지 않는다.
 - 릴리스는 GitHub Actions가 만든다(사용자 지시, 2026-10-04: 미리 빌드한 릴리스가 사용자 맥 빌드보다 낫고, 릴리스 수고는 Actions로 없앤다). `scripts/release.sh vX.Y.Z`는 깨끗한 작업 트리·푸시된 main을 확인하고 태그만 푸시한다. v0.1.0은 로컬에서 만들었다.
 - 릴리스는 유니버설(arm64 + x86_64, `UNIVERSAL=1`): Go는 `CC="clang -arch x86_64"`로 cgo 교차 빌드 후 `lipo`, 실행기는 `swiftc -target`. 인텔 실기기 확인은 못 했다. 버전은 `-ldflags -X main.version`과 Info.plist에 같이 넣는다(`calendar --version`).

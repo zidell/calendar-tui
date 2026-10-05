@@ -123,4 +123,4 @@ cd calendar-tui && scripts/package.sh --install
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+GPL-3.0. See [LICENSE](LICENSE).
