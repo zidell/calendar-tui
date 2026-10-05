@@ -18,21 +18,21 @@ Built with Go + [Bubble Tea](https://github.com/charmbracelet/bubbletea) + Lip G
 curl -fsSL https://zidell.github.io/calendar-tui/install.sh | bash
 ```
 
-Downloads the latest release (Apple Silicon & Intel), installs `/Applications/Calendar TUI.app` and pins it to the Dock. Run the same command again to update (your settings are kept). Website: https://zidell.github.io/calendar-tui/
+Installs the latest release binary (Apple Silicon & Intel) to `~/.local/bin/calendar-tui`, and tells you if `~/.local/bin` isn't on your PATH. Run the same command again to update (your settings are kept). Website: https://zidell.github.io/calendar-tui/
 
-To uninstall, move `/Applications/Calendar TUI.app` and `~/Library/Application Support/calendar-tui` to the Trash.
+To uninstall, delete `~/.local/bin/calendar-tui` and `~/Library/Application Support/calendar-tui`.
 
-To build and install from source (needs Go and the Xcode Command Line Tools):
+To build from source (needs Go and the Xcode Command Line Tools):
 
 ```sh
 git clone https://github.com/zidell/calendar-tui.git
-cd calendar-tui && scripts/package.sh --install
+cd calendar-tui && go build -o calendar-tui . && mv calendar-tui ~/.local/bin/
 ```
 
 ## Run
 
-- Click `Calendar TUI` (calendar icon) in the Dock, or open it from Launchpad or Spotlight. If a calendar window is already open it comes to the front; otherwise a Terminal window opens (filling the screen the first time). Window size and font size (`Cmd +/-`) are remembered for the next launch. While the calendar is running the Dock shows a running dot, and quitting the calendar (`q`) quits the app too.
-- On first launch macOS asks twice: to let "Calendar TUI control Terminal" (to open the window) and to let "Terminal access Calendars" (to read events). Allow both. If calendar access is denied, the app prints instructions and exits. To change it later: System Settings → Privacy & Security → Calendars / Automation.
+- Run `calendar-tui` in your terminal. It fills the window; `q` quits.
+- On first launch macOS asks to let your terminal access Calendars (the permission belongs to the terminal app you run it from). If access is denied, the app prints instructions and exits. To change it later: System Settings → Privacy & Security → Calendars.
 - Saves and deletes are synced to the account (Google, etc.) by macOS.
 - Changes made on other devices or apps appear as soon as macOS syncs them into the local calendar database. The app also re-reads when you return to the terminal window and when you press `r`, and once an hour as a fallback. How often macOS fetches from Google is up to macOS.
 
@@ -56,7 +56,7 @@ cd calendar-tui && scripts/package.sh --install
 - **Quick add** (`a`): type one line, e.g. `tomorrow 3pm lunch`, `fri 9:30am standup for 15m`, `oct 20 all day offsite`, or in Korean `내일 오후 3시 치과`, `금요일 10:30-12 리뷰`. No date means the selected day, no time means all day, no length means one hour. Hours 1–7 without am/pm are read as pm. Check the preview and press `Enter` (or `[Add]`), or `[Details]` to continue in the full form.
 - **Search** (`/`): titles, locations and notes of events within a year of today. Upcoming events first, then past ones. Picking a result goes to that day and opens its details; `esc` returns to the search.
 - Windows that change something only commit when you press their button (`[Save]`, `[Delete]`, `[Go]`, `[Add]`). `esc` always closes without changing anything.
-- With a Korean (or other composing) input method active, single-letter shortcuts are held by the input method and never reach the app. Use `Cmd+letter` (the same shortcut) or switch to English. The app doesn't change your input source.
+- With a Korean (or other composing) input method active, single-letter shortcuts are held by the input method and never reach the app. Switch to English. The app doesn't change your input source.
 - The UI language is Korean or English (follows the system language), and the colors adapt to dark or light terminal backgrounds (change both in Settings → Display).
 
 ## Keys
@@ -66,15 +66,13 @@ cd calendar-tui && scripts/package.sh --install
 | Calendar | `← ↑ ↓ →` / `hjkl` | Move by a day / a week (in Agenda, `↑ ↓` also move by a day) |
 | | `[` `]` (`Tab` `Shift+Tab`, `p` `n`, PgUp/PgDn, `Shift`/`Option`+arrows) | Previous / next month (Month) or week (Week, Agenda) |
 | | `v` | Switch view: Month → Week → Agenda |
-| | `1` `2` `3` (`Cmd+1` `Cmd+2` `Cmd+3`) | Month · Week · Agenda directly |
+| | `1` `2` `3` | Month · Week · Agenda directly |
 | | `a` | Quick add |
 | | `/` | Search |
 | | `g` | Go to a month (`2026-12`, `202612`, `12` = this year, `2027` = same month) |
 | | `t` | Today |
 | | `r` | Refresh |
 | | `s` | Settings |
-| | `Cmd+letter` | Same as the plain shortcut (works even with a Korean input method). `Cmd+F` search, `Cmd+,` settings, `Cmd+Q`/`Cmd+W` quit, `Cmd+V` paste into a text field, `Cmd +/-` font size. Only when launched as the app (Dock): while you are in the calendar window, Cmd shortcuts go to the calendar instead of Terminal (`Cmd+H`, `Cmd+M` and `` Cmd+` `` keep their macOS behavior) |
-| | `Cmd+H` · `Ctrl+H` | Hide just the calendar window (other Terminal windows stay). Click Calendar TUI in the Dock or pick it with Cmd+Tab to bring it back. `Cmd+H` works when launched as the app (Dock) |
 | | `Enter` | That day's events |
 | | `q` | Quit |
 | Any window | `esc` | Close (cancel) |
@@ -103,7 +101,7 @@ cd calendar-tui && scripts/package.sh --install
 - `‹` `›` beside the title → previous / next (month or week); the title itself → go to a month (`g`).
 - Clicking an event, button, setting or search result in a window selects it and presses `Enter`. The link line in the details opens the browser. In the form, click a field to move to it; all day toggles; repeat, alert and calendar step to the next value (click the `‹` side for the previous one).
 - Clicking outside the window (the dimmed area) closes it (same as `esc`; unsaved edits are dropped).
-- Because the app receives the mouse, turn off View → Allow Mouse Reporting in Terminal briefly if you want to drag-select text (use the menu: when launched as the app, `Cmd+R` goes to the calendar).
+- Because the app receives the mouse, turn off View → Allow Mouse Reporting in Terminal briefly if you want to drag-select text (`Cmd+R`).
 
 ## Settings
 
@@ -111,13 +109,13 @@ cd calendar-tui && scripts/package.sh --install
 
 - **Calendars**: turn calendars on and off, grouped by account (Google, iCloud, ...). Turning off an account hides all its calendars. New accounts and calendars are shown by default.
 - **Display**: language (auto, 한국어, English), theme (auto, dark, light), week start (Sunday, Monday), time format (24-hour, 12-hour), and the minimum width of the selected day column when narrow (in characters; 0 disables widening).
-- Settings file: `~/Library/Application Support/calendar-tui/config.toml` (print the path with `calendar --config-path`). `[display]` holds display settings, `[debug]` diagnostics, and `[accounts]` / `[calendars]` have one `"ID" = true/false` line per account and calendar (the comment at the end of the line is its name). Every item has an explanatory comment. You can edit it directly; the running app re-reads it as soon as you save. Check it with `calendar --check-config` (if it's invalid, the app keeps the previous values and shows the error at the bottom of the screen).
-- The last view and last-used calendar are remembered automatically and kept separately in `state.json` in the same folder. Window size and font size are remembered by the app launcher ([tuidock](https://github.com/zidell/tuidock)). An old `settings.json` is migrated on first run and kept as `.bak`.
-- Follows the [Agent Configuration Accessibility](https://github.com/zidell/agent-configuration-accessibility) convention so AI agents can find and change settings from the installed app alone: `Contents/Resources/readme.txt` in the app bundle, `calendar --help`, and a comment on every item.
+- Settings file: `~/Library/Application Support/calendar-tui/config.toml` (print the path with `calendar-tui --config-path`). `[display]` holds display settings, `[debug]` diagnostics, and `[accounts]` / `[calendars]` have one `"ID" = true/false` line per account and calendar (the comment at the end of the line is its name). Every item has an explanatory comment. You can edit it directly; the running app re-reads it as soon as you save. Check it with `calendar-tui --check-config` (if it's invalid, the app keeps the previous values and shows the error at the bottom of the screen).
+- The last view and last-used calendar are remembered automatically and kept separately in `state.json` in the same folder. An old `settings.json` is migrated on first run and kept as `.bak`.
+- Follows the [Agent Configuration Accessibility](https://github.com/zidell/agent-configuration-accessibility) convention so AI agents can find and change settings: `calendar-tui --help` and a comment on every item.
 
 ## Tips
 
-- Text size: change it with `Cmd + +/-` or by resizing the window; the calendar re-fits.
+- Text size: change it with the terminal's `Cmd + +/-` or by resizing the window; the calendar re-fits.
 - Line spacing can't be changed by the app. Use Terminal.app Settings → Profiles → Text → "Line spacing".
 - Key log: set `[debug] key_log = true` in `config.toml` to record keys and clicks in `~/Library/Logs/calendar-tui/keys.log` (only the last 24 hours are kept). Useful to see what reaches the app when a shortcut doesn't work, or whether change notifications (`store changed`) arrive. It records typed text too, so it is off by default.
 

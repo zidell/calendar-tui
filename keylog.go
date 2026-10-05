@@ -13,7 +13,6 @@ import (
 
 // 키 입력 디버그 로그. ~/Library/Logs/calendar-tui/keys.log(맥 기준)에 쌓고 24시간 지난 줄은 켤 때 지운다.
 // 입력한 글자(일정 제목 등)까지 남으므로 기본은 꺼 둔다. config.toml [debug] key_log = true로 켠다.
-// 앱 번들 안에 쓰면 서명이 깨지므로 실행 파일 옆이 아니라 사용자 로그 폴더에 둔다.
 var keyLog *os.File
 
 const keyLogTime = "2006-01-02T15:04:05.000"

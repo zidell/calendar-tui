@@ -1,16 +1,13 @@
 #!/bin/bash
 # calendar-tui 설치·업데이트 (macOS)
 #   curl -fsSL https://zidell.github.io/calendar-tui/install.sh | bash
-# 최신 릴리스의 앱(Calendar TUI.app, Apple Silicon·Intel)을 받아 /Applications에 넣고,
-# 캘린더 실행 파일을 ~/Library/Application Support/calendar-tui/calendar에 두고, Dock에 고정한다.
-# 다시 실행하면 업데이트된다(설정은 그대로). 시험용 환경변수: APP_DIR, SUPPORT_DIR, NO_DOCK=1, ZIP_URL.
+# 최신 릴리스의 실행 파일(Apple Silicon·Intel)을 받아 ~/.local/bin/calendar-tui에 둔다.
+# 다시 실행하면 업데이트된다(설정은 그대로). 시험용 환경변수: BIN_DIR, TAR_URL.
 set -euo pipefail
 
 REPO="zidell/calendar-tui"
-ZIP_URL="${ZIP_URL:-https://github.com/$REPO/releases/latest/download/Calendar-TUI-macos.zip}"
-APP_DIR="${APP_DIR:-/Applications}"
-SUPPORT_DIR="${SUPPORT_DIR:-$HOME/Library/Application Support/calendar-tui}"
-APP="$APP_DIR/Calendar TUI.app"
+TAR_URL="${TAR_URL:-https://github.com/$REPO/releases/latest/download/calendar-tui-macos.tar.gz}"
+BIN_DIR="${BIN_DIR:-$HOME/.local/bin}"
 
 say() { printf '\033[1m%s\033[0m\n' "$*"; }
 die() { printf 'calendar-tui: %s\n' "$*" >&2; exit 1; }
@@ -23,37 +20,33 @@ tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 
 say "내려받는 중 / Downloading…"
-curl -fsSL "$ZIP_URL" -o "$tmp/app.zip" || die "내려받기 실패 / download failed: $ZIP_URL"
-ditto -x -k "$tmp/app.zip" "$tmp" || die "압축 풀기 실패 / unzip failed"
-[ -d "$tmp/Calendar TUI.app" ] || die "앱이 들어 있지 않습니다 / app not found in archive"
+curl -fsSL "$TAR_URL" -o "$tmp/calendar-tui.tar.gz" || die "내려받기 실패 / download failed: $TAR_URL"
+tar -xzf "$tmp/calendar-tui.tar.gz" -C "$tmp" || die "압축 풀기 실패 / extract failed"
+[ -f "$tmp/calendar-tui" ] || die "실행 파일이 들어 있지 않습니다 / binary not found in archive"
 # curl로 받은 파일엔 격리 표시가 붙지 않지만, 혹시 붙어 있으면 지운다
-xattr -dr com.apple.quarantine "$tmp/Calendar TUI.app" 2>/dev/null || true
+xattr -d com.apple.quarantine "$tmp/calendar-tui" 2>/dev/null || true
 
-say "설치하는 중 / Installing…"
-mkdir -p "$APP_DIR" "$SUPPORT_DIR"
-if [ -w "$APP_DIR" ]; then
-  rm -rf "$APP" && cp -R "$tmp/Calendar TUI.app" "$APP_DIR/"
-else
-  echo "$APP_DIR 에 쓰려면 관리자 암호가 필요합니다 / admin password needed for $APP_DIR"
-  sudo rm -rf "$APP" && sudo cp -R "$tmp/Calendar TUI.app" "$APP_DIR/"
-fi
-# 실행 중인 캘린더가 있으면 새 파일을 감지해 그 창에서 다시 시작한다(옆에 쓰고 이름만 바꿈)
-cp "$APP/Contents/Resources/calendar" "$SUPPORT_DIR/calendar.new"
-mv -f "$SUPPORT_DIR/calendar.new" "$SUPPORT_DIR/calendar"
+mkdir -p "$BIN_DIR"
+# 실행 중인 calendar-tui가 있으면 새 파일을 감지해 그 창에서 다시 시작한다(옆에 쓰고 이름만 바꿈)
+cp "$tmp/calendar-tui" "$BIN_DIR/calendar-tui.new"
+chmod +x "$BIN_DIR/calendar-tui.new"
+mv -f "$BIN_DIR/calendar-tui.new" "$BIN_DIR/calendar-tui"
 
-if [ "${NO_DOCK:-}" != 1 ] && ! defaults read com.apple.dock persistent-apps 2>/dev/null | grep -q "Calendar%20TUI.app"; then
-  defaults write com.apple.dock persistent-apps -array-add "<dict><key>tile-data</key><dict><key>file-data</key><dict><key>_CFURLString</key><string>file://$(printf '%s' "$APP/" | sed 's/ /%20/g')</string><key>_CFURLStringType</key><integer>15</integer></dict></dict></dict>"
-  killall Dock 2>/dev/null || true
-fi
+say "설치 완료 / Installed: $("$BIN_DIR/calendar-tui" --version 2>/dev/null || echo calendar-tui) → $BIN_DIR/calendar-tui"
+case ":$PATH:" in
+  *":$BIN_DIR:"*) ;;
+  *) cat <<MSG
 
-say "설치 완료 / Installed: $("$SUPPORT_DIR/calendar" --version 2>/dev/null || echo calendar-tui)"
+$BIN_DIR 이 PATH에 없습니다. ~/.zshrc에 추가하세요 / Add it to your PATH in ~/.zshrc:
+  export PATH="$BIN_DIR:\$PATH"
+MSG
+  ;;
+esac
 cat <<'MSG'
 
-Dock의 "Calendar TUI"를 누르세요. 처음 실행할 때 권한 창 두 개를 허용합니다:
-  · Calendar TUI가 Terminal을 제어  · 터미널이 캘린더에 접근
+터미널에서 calendar-tui 를 실행하세요. 처음 실행할 때 "터미널이 캘린더에 접근" 권한 창을 허용합니다.
 캘린더 계정은 시스템 설정 → 인터넷 계정에 추가해 둔 구글·iCloud 등을 그대로 씁니다.
 
-Click "Calendar TUI" in the Dock. On first launch allow both prompts:
-  · Calendar TUI wants to control Terminal  · Terminal wants to access Calendars
+Run calendar-tui in your terminal. On first launch allow "Terminal wants to access Calendars".
 It uses the Google/iCloud accounts in System Settings → Internet Accounts.
 MSG

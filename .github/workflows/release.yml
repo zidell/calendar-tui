@@ -1,6 +1,6 @@
-# 릴리스: v로 시작하는 태그를 푸시하면 macOS에서 유니버설(Apple Silicon·Intel) 앱을 빌드해 GitHub Releases에 올린다.
-# 설치 스크립트(docs/install.sh)는 releases/latest/download/Calendar-TUI-macos.zip을 받는다.
-# 수동 실행(workflow_dispatch)은 빌드만 해서 결과 zip을 아티팩트로 남긴다(릴리스 안 함, 빌드 점검용).
+# 릴리스: v로 시작하는 태그를 푸시하면 macOS에서 유니버설(Apple Silicon·Intel) 실행 파일을 빌드해 GitHub Releases에 올린다.
+# 설치 스크립트(docs/install.sh)는 releases/latest/download/calendar-tui-macos.tar.gz를 받는다.
+# 수동 실행(workflow_dispatch)은 빌드만 해서 결과를 아티팩트로 남긴다(릴리스 안 함, 빌드 점검용).
 name: release
 
 on:
@@ -21,27 +21,29 @@ jobs:
           go-version-file: go.mod
       - name: Test
         run: go test ./...
-      - name: Build universal app
+      - name: Build universal binary
         run: |
           V="${GITHUB_REF_NAME}"
           [[ "$GITHUB_REF_TYPE" == tag ]] || V="dev-${GITHUB_SHA::7}"
-          VERSION="$V" UNIVERSAL=1 scripts/package.sh
-          ditto -c -k --keepParent "dist/Calendar TUI.app" dist/Calendar-TUI-macos.zip
-          lipo -info "dist/Calendar TUI.app/Contents/Resources/calendar"
-          lipo -info "dist/Calendar TUI.app/Contents/MacOS/launcher"
-          "dist/Calendar TUI.app/Contents/Resources/calendar" --version
-          shasum -a 256 dist/Calendar-TUI-macos.zip
+          mkdir -p dist
+          CGO_ENABLED=1 GOARCH=arm64 go build -ldflags "-X main.version=$V" -o dist/calendar-tui-arm64 .
+          CGO_ENABLED=1 GOARCH=amd64 CC="clang -arch x86_64" go build -ldflags "-X main.version=$V" -o dist/calendar-tui-amd64 .
+          lipo -create -output dist/calendar-tui dist/calendar-tui-arm64 dist/calendar-tui-amd64
+          lipo -info dist/calendar-tui
+          dist/calendar-tui --version
+          tar -czf dist/calendar-tui-macos.tar.gz -C dist calendar-tui
+          shasum -a 256 dist/calendar-tui-macos.tar.gz
       - name: Upload build (manual run)
         if: github.ref_type != 'tag'
         uses: actions/upload-artifact@v4
         with:
-          name: Calendar-TUI-macos
-          path: dist/Calendar-TUI-macos.zip
+          name: calendar-tui-macos
+          path: dist/calendar-tui-macos.tar.gz
       - name: Publish release
         if: github.ref_type == 'tag'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/Calendar-TUI-macos.zip \
+          gh release create "$GITHUB_REF_NAME" dist/calendar-tui-macos.tar.gz \
             --title "$GITHUB_REF_NAME" \
-            --notes "macOS(Apple Silicon·Intel) 앱. 설치·업데이트: \`curl -fsSL https://zidell.github.io/calendar-tui/install.sh | bash\`"
+            --notes "macOS(Apple Silicon·Intel) 실행 파일. 설치·업데이트: \`curl -fsSL https://zidell.github.io/calendar-tui/install.sh | bash\`"

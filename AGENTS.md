@@ -2,26 +2,29 @@
 
 사용법은 `README.md`, 개발 지시·UI/UX 규칙·설계 근거는 이 파일에 둔다. 새로 정한 규칙·결정은 여기에 누적한다.
 
+저장소 루트에 `AGENTS.local.md`가 있으면 작업 전에 먼저 읽는다. 개발 맥 한 대에만 해당하는 것(설치 상태·개인 도구)을 두는 커밋하지 않는 파일이다.
+
 ## 작업 방식
 
 README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·화면·조작·설정). 빌드·테스트·개발 실행·설계는 이 파일에 둔다. 두 README는 같은 내용으로 맞춘다.
 
 - 빌드와 실행(개발):
   ```sh
-  go build -o calendar .
-  ./calendar          # 맥 캘린더 계정(EventKit). 권한은 실행한 터미널 앱 기준
-  ./calendar -mock    # 메모리 목업 일정(설정 파일은 읽기만). 쓰기 경로 검증은 이걸로
+  go build -o calendar-tui .
+  ./calendar-tui          # 맥 캘린더 계정(EventKit). 권한은 실행한 터미널 앱 기준
+  ./calendar-tui -mock    # 메모리 목업 일정(설정 파일은 읽기만). 쓰기 경로 검증은 이걸로
   go test .           # 빠른 추가·시각 해석 테스트
   ```
 - 필요한 것: Go, Xcode 커맨드라인 도구(cgo로 EventKit을 부른다). 다른 OS에선 빌드 태그로 목업만 붙는다.
 
 - 코드를 고친 뒤에는 묻지 말고 항상 `./dev.sh`를 실행해 사용자가 바로 확인할 수 있게 한다.
-  - 앱이 설치돼 있으면 앱이 쓰는 바이너리 `~/Library/Application Support/calendar-tui/calendar`를 바꾼다(옆에 쓰고 `mv`로 교체 — 실행 중인 파일을 덮어쓰면 프로세스가 죽을 수 있다). 그래서 앱으로 띄운 창도 제자리에서 갱신된다. 앱 번들은 건드리지 않는다(서명이 바뀌면 Terminal 제어 권한을 다시 묻는다).
-  - 앱이 떠 있지 않으면 `Calendar TUI.app`을 연다(앱이 설치돼 있지 않으면 Terminal 창을 직접 띄운다).
+  - 빌드한 바이너리를 `~/.local/bin/calendar-tui`(설치 스크립트가 까는 자리)로 바꾼다(옆에 쓰고 `mv`로 교체 — 실행 중인 파일을 덮어쓰면 프로세스가 죽을 수 있다).
+  - `dev.local.sh`(커밋하지 않음)가 있으면 띄우기는 그것에 맡긴다(설치한 바이너리 경로를 인자로 준다).
+  - 없으면 떠 있지 않을 때 Terminal 창을 띄워 실행한다.
   - 이미 떠 있으면 앱이 새 실행 파일을 감지해 그 창에서 다시 시작한다(보던 날짜 유지, 열린 모달·입력 중 내용은 사라짐). 창을 새로 열거나 프로세스를 죽이지 않는다.
 - 윈도우 교차 빌드도 깨지지 않게 유지한다: `GOOS=windows GOARCH=amd64 go vet ./... && go build -o calendar.exe .`
 - EventKit 권한·입력 소스처럼 Terminal.app 기준으로 확인해야 하는 실행(테스트 바이너리, 프로브)은 `scripts/term-run.sh '명령'`으로 돌린다. 끝나면 그 창을 닫아 종료된 터미널 창이 남지 않는다. `osascript ... do script`로 창을 직접 띄우지 않는다.
-- 화면 확인은 Terminal 창 스크린샷으로 한다: `screencapture -x -o -l <창 id>`(창 id는 `osascript -e 'tell application "Terminal" to get id of (first window whose name contains "— calendar —")'`). tmux는 DEC 2배 크기 줄을 그리지 못하고, 입력기를 거치지 않으므로 한글 입력 확인에도 못 쓴다.
+- 화면 확인은 Terminal 창 스크린샷으로 한다: `screencapture -x -o -l <창 id>`(창 id는 `osascript -e 'tell application "Terminal" to get id of (first window whose name contains "— calendar-tui —")'`). tmux는 DEC 2배 크기 줄을 그리지 못하고, 입력기를 거치지 않으므로 한글 입력 확인에도 못 쓴다.
 - 사용자의 실제 구글 캘린더에 테스트 일정을 만들거나 지우지 않는다. 쓰기 경로는 `-mock`으로 검증한다.
 - 성능 문제는 짐작하지 말고 잰다(키 처리·View 시간, 키당 출력 바이트). 2026-10-04 측정: Update 0.03ms, View 0.6ms, 달 바뀔 때 EventKit 조회 9ms, 키당 출력 약 3KB, 대기 중 출력 0.
 
@@ -43,16 +46,12 @@ README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·�
 | `mock.go` | 메모리 목업 구현체(반복·예외·분할 포함) |
 | `settings.go` | 설정 메뉴, 캘린더 선택 |
 | `config.go` | 설정 파일: `config.toml`(사용자 설정)·`state.json`(앱이 기억하는 값), 예전 `settings.json` 옮기기 |
-| `assets/readme.txt` | 앱 번들 `Contents/Resources/readme.txt`(설치 사용자·에이전트용 설정 안내) |
 | `reload_*.go` | 새 빌드 감지 → 제자리 재시작 |
 | `keylog.go` | 키 입력 로그(기본 꺼짐, `config.toml` `[debug] key_log`. 입력한 글자도 남아서 공개 전 기본값을 끔) |
 | `dev.sh`, `scripts/term-run.sh` | 개발용 실행 |
-| `scripts/package.sh` | 앱 번들(`dist/Calendar TUI.app`)을 `tuidock make`로 만들기, `--install`이면 `/Applications`에 설치하고 Dock에 고정 |
 | `scripts/release.sh` | 릴리스: `scripts/release.sh v0.1.1` → 확인 후 태그만 푸시. 빌드·업로드는 Actions |
-| `.github/workflows/release.yml` | `v*` 태그 푸시 → macOS 러너에서 테스트·유니버설 빌드 → Releases에 `Calendar-TUI-macos.zip`. 수동 실행은 빌드만(아티팩트) |
-| `docs/` | GitHub Pages(https://zidell.github.io/calendar-tui/): 소개 페이지 `index.html`, 설치 스크립트 `install.sh`(`curl … \| bash`) |
-| (tuidock 모듈) | 앱 실행기. 별도 레포 [zidell/tuidock](https://github.com/zidell/tuidock)(로컬 `~/Sites/tuidock`), 버전은 `go.mod`가 고정. 캘린더는 Go 패키지 `tuidock`으로 실행기와 주고받는다(`main.go` `dock`) |
-| `scripts/make-icon.swift`, `assets/icon-1024.png` | 앱 아이콘 생성기와 결과(어두운 바탕·빨간 머리띠·달력 격자·오늘 칸 흰 테두리) |
+| `.github/workflows/release.yml` | `v*` 태그 푸시 → macOS 러너에서 테스트·유니버설 빌드 → Releases에 `calendar-tui-macos.tar.gz`(실행 파일 하나). 수동 실행은 빌드만(아티팩트) |
+| `docs/` | GitHub Pages(https://zidell.github.io/calendar-tui/): 소개 페이지 `index.html`, 설치 스크립트 `install.sh`(`curl … \| bash`, `~/.local/bin/calendar-tui`에 설치) |
 
 - UI는 `backend` 인터페이스(기간 조회 / 저장 / 삭제, 반복 범위 `span`)만 부른다. 나중에 Google API·CalDAV 구현체를 같은 자리에 붙인다.
 - 일정은 회차 단위(`event.occ`가 회차 키). 반복 규칙 펼치기는 백엔드가 한다.
@@ -90,13 +89,10 @@ README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·�
 
 ### 키
 
-- `Ctrl+H`는 캘린더 창만 숨긴다(`Cmd+H`와 같다. 실행기에 `hide`를 보낸다). 실행기가 Dock 클릭·Cmd+Tab 때 하는 `set index` + `activate`가 숨긴 창도 다시 보이게 한다(2026-10-04 확인). 글자 칸에선 `Ctrl+H`가 지우기라 그대로 둔다.
-- `Cmd+글자`도 단축키로 쓴다(사용자 지시: "터미널의 탈을 썼지만 단독 앱처럼". 2026-10-06: "터미널은 껍데기일 뿐, 터미널 단축키는 다 없애고 TUI로"). 입력기는 Cmd 조합을 조합하지 않아 한글·구름 상태와 상관없이 먹는다. Terminal은 Cmd 조합을 앱에 안 넘기므로 실행기(tuidock)가 받는다: 캘린더가 포커스 들어옴·나감을 `dock.Focus`로 알리고, 실행기는 그동안만 Cmd·Cmd+Shift 조합을 전부 Carbon 단축키로 등록해 `key cmd+a` 꼴로 넘긴다. 넘기지 않는 것은 macOS 공통 동작인 `Cmd+H`(실행기가 이 창만 숨김)·`Cmd+M`(최소화)·`` Cmd+` ``(창 전환. 처음엔 넘겼는데 사용자가 다른 Terminal 창으로 못 가 연타한 게 키 로그에 남아 뺐다, 2026-10-06)과 스크린샷·로그아웃. 캘린더는 `Cmd+Q`·`Cmd+W` 종료, `Cmd+F` 검색, `Cmd+,` 설정, `Cmd+V` 글자 칸 붙여넣기(`tuidock.Paste`), `Cmd +/-` 글꼴(`dock.Font`), `Cmd+C`는 무시(단축키 c = 복제로 가면 놀람), 나머지 `Cmd+글자`는 그 글자 단축키(글자 칸에선 무시). 이미 포커스된 창에서 시작하면 Terminal이 포커스 신호를 안 줘서, 실행기가 `hello`를 받을 때 그 창이 맨 앞인지 직접 본다. 입력 소스 자동 전환으로 끝내 못 잡은 한글 문제(아래)의 해법이다. 입력 소스를 ABC 등 다른 입력기로 바꾸는 안은 사용자가 거부(번거로움).
-- `Cmd+H`도 캘린더 창만 숨긴다(사용자 지시: macOS 기본 숨김이라 작동해야 한다): 실행기가 Terminal이 맨 앞일 때만 Carbon `RegisterEventHotKey`로 `Cmd+H`를 가로채(손쉬운 사용 권한 불필요), 맨 앞 창이 캘린더면 그 창만 `visible false`, 아니면 원래처럼 Terminal 숨기기. 다른 앱이 앞에 오면 등록을 풀어 그 앱의 `Cmd+H`는 그대로.
-- 한 글자 단축키를 유지한다. Cmd 조합은 앱(Dock)으로 실행했을 때만 오므로 기본 조작에 쓰지 않는다(달 이동을 Cmd+방향키로 하려다 Shift·Option+방향키로 바꿈).
-- 보기: `v`로 월간 → 주간 → 목록. `1` `2` `3`(`Cmd+1~3`)은 월간·주간·목록으로 바로(사용자 지시: 월간이 1. 처음엔 macOS 캘린더 관례대로 목록·주간·월간이었다). `Cmd+V`는 붙여넣기라 보기 전환엔 못 씀. `[` `]`·제목 꺽쇠는 월간이면 한 달, 주간·목록이면 한 주. 목록 보기에선 `↑ ↓`도 하루. 마지막 보기는 `state.json` `view`.
+- 이 레포는 순수 터미널 바이너리다(2026-10-06 사용자 지시). Dock 앱·실행기 연동 코드나 설명을 두지 않는다. 터미널은 Cmd 조합을 앱에 넘기지 않으므로 단축키는 한 글자·Ctrl·Shift·Option 조합만 쓴다(달 이동을 Cmd+방향키로 하려다 Shift·Option+방향키로 바꿈).
+- 보기: `v`로 월간 → 주간 → 목록. `1` `2` `3`은 월간·주간·목록으로 바로(사용자 지시: 월간이 1. 처음엔 macOS 캘린더 관례대로 목록·주간·월간이었다). `[` `]`·제목 꺽쇠는 월간이면 한 달, 주간·목록이면 한 주. 목록 보기에선 `↑ ↓`도 하루. 마지막 보기는 `state.json` `view`.
 - 마우스(`mouse.go`): 왼쪽 클릭만. 클릭 = 그 항목을 고르고 `enter`(키 처리 함수를 그대로 부른다). 달력 칸은 누른 줄로 가른다(`cellLines` 순서): 일정 → 바로 상세(목록 없이), 빈 곳 → 새 일정, 날짜 줄·`+N개 더` → 일정 목록(사용자 지시: enter 흉내보다 바로 열기). 월 제목 양옆 `‹` `›` → 달 이동, 가운데 제목 → 월 이동 창(`g`). 2배 크기 제목 줄의 클릭 x는 Terminal이 2배 크기 칸 단위로 준다(화면 칸의 절반. 화면 칸으로 보고 2로 나눴다가 안 눌렸다, 키 로그로 확인). 좌표는 View와 같은 계산(`layout`·`titleLayout`·`scroll`, 모달은 `overlay`의 가운데 정렬)으로 되짚고, 버튼은 그 줄에서 `buttons()` 글자를 찾아 판정한다. 휠은 쓰지 않는다(트랙패드 관성으로 달이 마구 넘어감). 클릭은 키 로그에 `click x,y`로 남는다.
-- 한글 입력 상태에선 한 글자 단축키가 입력기에 붙잡혀(조합 중인 자모는 다음 키나 포커스 이동 때에야 넘어온다) 앱에 오지 않는다. 해법은 위 `Cmd+글자`이고, 앱은 입력 소스를 건드리지 않는다(2026-10-04 사용자 결정). 이력: 단축키 화면은 영문, 글자 칸은 원래 입력 소스로 앱이 자동 전환했다(Carbon TIS, `ime*.go`). 그러나 구름(세벌식 390)은 시스템엔 영문(`Gureum.system`)으로 보고되면서 내부는 한글 모드로 남아 키를 조합하는 불일치가 생겼고(키 로그로 확인), 강제 한글→영문 재전환·포커스 직후 재확인·한글 키 버리고 재전환까지 넣어도 다른 탭에 갔다 오면 재발해서 전부 걷어냈다. 프로그램으로 입력 소스를 바꾸는 것 자체가 구름 내부 모드와 어긋나는 원인일 수 있다(추정). 조합 중 마지막 글자에서 Enter를 치면 확정된 글자만 오고 Enter는 사라져 한 번 더 쳐야 한다(띄어쓰기는 확정 뒤 그대로 온다). 원시 바이트 프로브로 확인: 터미널 모드(대체 화면·마우스·포커스·붙여넣기)와 무관하고, 구름·맥 기본 입력기, Terminal.app·Ghostty, Claude Code 모두 같다(2026-10-04). 앱엔 조합 중 글자가 오지 않아(터미널이 덧그리기만 함) 브라우저처럼 조합 값을 읽는 우회도, 확정만 온 것을 Enter로 보는 우회도(입력 소스 전환·창 이동 확정과 구별 불가) 못 한다.
+- 한글 입력 상태에선 한 글자 단축키가 입력기에 붙잡혀(조합 중인 자모는 다음 키나 포커스 이동 때에야 넘어온다) 앱에 오지 않는다. 영문으로 바꿔 쓴다. 앱은 입력 소스를 건드리지 않는다(2026-10-04 사용자 결정). 입력 소스를 ABC 등 다른 입력기로 바꾸는 안은 사용자가 거부(번거로움). 이력: 단축키 화면은 영문, 글자 칸은 원래 입력 소스로 앱이 자동 전환했다(Carbon TIS, `ime*.go`). 그러나 구름(세벌식 390)은 시스템엔 영문(`Gureum.system`)으로 보고되면서 내부는 한글 모드로 남아 키를 조합하는 불일치가 생겼고(키 로그로 확인), 강제 한글→영문 재전환·포커스 직후 재확인·한글 키 버리고 재전환까지 넣어도 다른 탭에 갔다 오면 재발해서 전부 걷어냈다. 프로그램으로 입력 소스를 바꾸는 것 자체가 구름 내부 모드와 어긋나는 원인일 수 있다(추정). 조합 중 마지막 글자에서 Enter를 치면 확정된 글자만 오고 Enter는 사라져 한 번 더 쳐야 한다(띄어쓰기는 확정 뒤 그대로 온다). 원시 바이트 프로브로 확인: 터미널 모드(대체 화면·마우스·포커스·붙여넣기)와 무관하고, 구름·맥 기본 입력기, Terminal.app·Ghostty, Claude Code 모두 같다(2026-10-04). 앱엔 조합 중 글자가 오지 않아(터미널이 덧그리기만 함) 브라우저처럼 조합 값을 읽는 우회도, 확정만 온 것을 Enter로 보는 우회도(입력 소스 전환·창 이동 확정과 구별 불가) 못 한다.
 
 ## 기술 결정과 근거
 
@@ -129,33 +125,22 @@ README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·�
 - 달 단위 캐시. 변경 알림·포커스 복귀·`r`·저장 후·1시간 주기로 무효화(아래 "바깥 변경 반영").
 - 빌드: cgo(Objective-C) → Xcode 커맨드라인 도구 필요. 윈도우 빌드에선 빌드 태그로 목업만.
 
-### 앱 패키징 (tuidock)
-
-- `Calendar TUI.app`은 [tuidock](https://github.com/zidell/tuidock) 실행기다(2026-10-06 분리, 사용자 지시: Fluid처럼 "터미널 바이너리는 그대로, Dock 실행기는 따로"). 처음엔 이 레포 `scripts/launcher.swift`였다. 실행기의 동작·설계 근거(상주, 창을 tty로 찾기, 창 크기·글꼴 기억, Cmd 단축키 가로채기, 메모리 실측, SwiftTerm을 버린 이유)는 tuidock 레포 `AGENTS.md`에 있다.
-- 만들기: `scripts/package.sh`가 `go list -m`로 찾은 tuidock 모듈의 `tuidock make`를 부른다. 실행기 버전은 `go.mod`의 tuidock 버전이 고정한다.
-- 캘린더 바이너리는 번들 밖 `~/Library/Application Support/calendar-tui/calendar`(`TUIDockCommand`, 설치 때 복사, `dev.sh`가 교체)를 먼저 쓰고, 없으면 번들 안 `Resources/calendar`(`TUIDockEmbedded`). 그래서 `dev.sh`가 갈아 끼워도 번들 서명이 그대로라 Terminal 제어 권한을 다시 묻지 않는다. 실행기를 다시 만들면(번들 재설치) 한 번 더 묻는다.
-- 캘린더 쪽 연결은 Go 패키지 `tuidock`(`main.go` `dock`): 포커스(`Focus`), 숨기기(`Hide`, `Ctrl+H`), 글꼴(`Font`, `Cmd +/-`), 종료 직전 `Close`(실행기가 창 크기·글꼴을 기억할 때까지 기다림, 제자리 재시작 땐 안 부름). 터미널에서 직접 실행하면 `dock`은 nil이고 아무것도 안 한다.
-- 창 크기·글꼴 크기는 실행기가 기억한다(`defaults read com.zidell.calendar-tui`). 예전엔 캘린더가 `state.json`에 적었다(`windowCols`·`windowRows`·`fontSize`, 이제 안 씀).
-- 창 제목 `▦ 캘린더`(`main.go` `windowTitle`)는 이제 표시용이다. 실행기는 창을 제목이 아니라 tty로 찾는다(예전엔 제목으로 찾다가 폴더명이 같은 다른 창이 걸렸다).
-- 캘린더 권한은 여전히 Terminal 기준(창이 Terminal 소속). 실행기는 Terminal 자동화 권한만 필요.
-- 번들은 ad-hoc 서명. 키 로그를 번들 안에 쓰면 서명이 깨져서 `~/Library/Logs/calendar-tui/`로 옮겼다.
-
 ### 설정 파일 (에이전트 접근성)
 
 [agent-configuration-accessibility](https://github.com/zidell/agent-configuration-accessibility) 컨벤션을 따른다(2026-10-04 사용자 지시).
 
-- 사용자 설정은 `config.toml`(TOML, 항목마다 설명 주석), 앱이 저절로 기억하는 값(창 크기·글꼴·마지막 보기·마지막 캘린더)은 `state.json`. 하나로 두면 창 크기를 바꿀 때마다 앱이 파일을 다시 써서 바깥 편집을 덮기 때문에 나눴다.
+- 사용자 설정은 `config.toml`(TOML, 항목마다 설명 주석), 앱이 저절로 기억하는 값(마지막 보기·마지막 캘린더)은 `state.json`. 하나로 두면 보기를 바꿀 때마다 앱이 파일을 다시 써서 바깥 편집을 덮기 때문에 나눴다.
 - 표시 여부는 `[accounts]`·`[calendars]` 아래 `"ID" = true/false  # 이름`. ID는 EventKit 것이라 이름 주석을 앱이 채운다(시작 때 목록이 바뀌었으면, 설정 [저장] 때 다시 씀). 지금 목록에 없는 숨김 ID도 남긴다.
 - 바깥 편집 반영: 맥·리눅스는 자동 재시작 감시 루프(0.3초)에서 `config.toml` mtime도 같이 봐서 즉시, 그 밖엔 `invalidate`(포커스 복귀·`r`·1시간)에서 다시 읽는다. 감시 루프를 새로 두지 않았다.
 - 잘못된 값(타입·모르는 항목)은 이전 값을 유지하고 화면 맨 아래에 오류. 그동안은 앱이 파일을 다시 쓰지 않는다(고치던 내용 보호).
 - `--config-path`·`--check-config`는 EventKit 권한 요청·옮기기·쓰기 전에 끝난다(처음엔 설정을 읽다가 옮기기까지 해버려 고쳤다). `-mock`은 설정 파일을 읽기만 한다(목업 창이 실제 창 크기를 덮어쓴 적이 있다).
-- 설정 항목을 늘리면 `tomlConfig`·`renderConfig`(설명 주석)·`assets/readme.txt`·`usage()`를 같이 고친다.
+- 설정 항목을 늘리면 `tomlConfig`·`renderConfig`(설명 주석)·`usage()`를 같이 고친다.
 
 ### 공개용 일반 기능 (2026-10-04)
 
 사용자가 "내가 쓸 기능은 다 됐고, 공개를 위해 일반 사용자에게 필요할 기능을 이 컨셉·UX 위에 보완"하라고 해서 후보를 묻고 고른 것: 알림, URL·회의 링크, 복제·이동, 빠른 추가, 검색, 주 시작 요일·12/24시간, 목록 보기, 주간 보기, 영어 UI, 밝은 배경 테마. (인텔 맥 유니버설 빌드는 고르지 않음)
 
-- 다국어: 키 표 없이 쓰는 자리에서 `L(ko, en)`. 언어 auto는 `LC_ALL`·`LC_MESSAGES`·`LANG`, 없으면 `AppleLanguages`. 사용자 지정 반복 규칙 설명은 EventKit(ObjC)에서 구조(빈도·간격·요일)만 받아 Go가 만든다(`ruleText`). 창 제목도 `▦ 캘린더`/`▦ Calendar` — 실행기는 둘 다 찾는다(번들 재설치 전엔 옛 실행기가 한국어 제목만 찾음).
+- 다국어: 키 표 없이 쓰는 자리에서 `L(ko, en)`. 언어 auto는 `LC_ALL`·`LC_MESSAGES`·`LANG`, 없으면 `AppleLanguages`. 사용자 지정 반복 규칙 설명은 EventKit(ObjC)에서 구조(빈도·간격·요일)만 받아 Go가 만든다(`ruleText`). 창 제목도 `▦ 캘린더`/`▦ Calendar`.
 - 테마: 시작 때 `lipgloss.HasDarkBackground()`(OSC 11)로 배경을 물어 auto를 정한다(Terminal.app Novel 프로필에서 밝음으로 잡히는 것 확인. Basic 프로필은 시스템 다크 모드를 따라 어둡게 나옴). 밝은 테마에선 캘린더 색 글씨를 검정 쪽으로 45% 섞는다(`inkOf`, 연한 색이 흰 바탕에 묻힘).
 - 알림: 폼에서 알림 하나만 다룬다(시작 기준 분, 하루 종일은 0시 기준). 원래 여러 개·절대 시각이면 "여러 개·사용자 지정"으로 보이고 바꾸기 전까지 그대로(`keepAlarms`). 알림은 macOS·폰이 띄우므로 앱이 꺼져 있어도 온다.
 - 링크: URL 칸, 없으면 장소·메모 안의 첫 http(s) 링크(구글 Meet은 EventKit에 URL로 안 오고 메모에 들어 있다).
@@ -195,11 +180,11 @@ README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·�
 
 ### 배포 (2026-10-04)
 
-- 저장소 공개, GPL-3.0(2026-10-05 MIT에서 변경). 설치는 `curl -fsSL https://zidell.github.io/calendar-tui/install.sh | bash` 한 줄: 최신 릴리스 zip을 받아 `/Applications`에 넣고 실행 파일을 `~/Library/Application Support/calendar-tui/`에 두고 Dock에 고정한다. 다시 실행하면 업데이트(실행 중이면 새 실행 파일을 감지해 제자리 재시작).
-- 공증(연 $99) 없이 되는 이유: 브라우저로 받은 파일엔 격리 표시(`com.apple.quarantine`)가 붙어 Gatekeeper가 막지만 `curl`로 받은 파일엔 붙지 않는다. 번들은 ad-hoc 서명이라 Apple Silicon에서도 실행된다. 그래서 zip을 브라우저로 받아 여는 안내는 하지 않는다.
+- 저장소 공개, GPL-3.0(2026-10-05 MIT에서 변경). 설치는 `curl -fsSL https://zidell.github.io/calendar-tui/install.sh | bash` 한 줄: 최신 릴리스 `tar.gz`를 받아 실행 파일을 `~/.local/bin/calendar-tui`(`BIN_DIR`)에 두고, PATH에 없으면 알려 준다. 명령 이름은 macOS 기본 `/usr/bin/calendar`와 겹치지 않게 `calendar-tui`. 다시 실행하면 업데이트(실행 중이면 새 실행 파일을 감지해 제자리 재시작).
+- 공증(연 $99) 없이 되는 이유: 브라우저로 받은 파일엔 격리 표시(`com.apple.quarantine`)가 붙어 Gatekeeper가 막지만 `curl`로 받은 파일엔 붙지 않는다. Go 링커가 arm64 바이너리에 ad-hoc 서명을 넣어 Apple Silicon에서도 실행된다. 그래서 파일을 브라우저로 받아 여는 안내는 하지 않는다.
 - 릴리스는 GitHub Actions가 만든다(사용자 지시, 2026-10-04: 미리 빌드한 릴리스가 사용자 맥 빌드보다 낫고, 릴리스 수고는 Actions로 없앤다). `scripts/release.sh vX.Y.Z`는 깨끗한 작업 트리·푸시된 main을 확인하고 태그만 푸시한다. v0.1.0은 로컬에서 만들었다.
-- 릴리스는 유니버설(arm64 + x86_64, `UNIVERSAL=1`): Go는 `CC="clang -arch x86_64"`로 cgo 교차 빌드 후 `lipo`, 실행기는 `swiftc -target`. 인텔 실기기 확인은 못 했다. 버전은 `-ldflags -X main.version`과 Info.plist에 같이 넣는다(`calendar --version`).
-- 설치 스크립트 시험은 `ZIP_URL=file://… APP_DIR=… SUPPORT_DIR=… NO_DOCK=1 bash docs/install.sh`로 임시 폴더에(실제 설치를 건드리면 Terminal 제어 권한을 다시 묻는다).
+- 릴리스는 유니버설(arm64 + x86_64): `CC="clang -arch x86_64"`로 cgo 교차 빌드 후 `lipo`(`release.yml`). 인텔 실기기 확인은 못 했다. 버전은 `-ldflags -X main.version`(`calendar-tui --version`).
+- 설치 스크립트 시험은 `TAR_URL=file://… BIN_DIR=… bash docs/install.sh`로 임시 폴더에.
 - 윈도우는 배포하지 않는다: 윈도우엔 EventKit처럼 시스템 계정 일정을 앱에 주는 창구가 사실상 없다(WinRT `AppointmentStore`는 패키지 신원이 필요하고, 데이터를 채우던 "메일 및 일정" 앱이 새 Outlook으로 바뀜 — 미확인 지식). 목업만 보이는 앱을 내놓지 않으려고 뺐다. 윈도우는 Google API·Graph 백엔드가 생기면 다시 본다.
 
 ## 로드맵
@@ -216,5 +201,4 @@ UI는 그대로 두고 `backend` 구현체를 추가한다.
 
 ### 남은 일
 
-- `go.mod`가 아직 로컬 `replace github.com/zidell/tuidock => ../tuidock`다(tuidock 공개 전, 2026-10-06). 이대로 푸시하면 Actions 릴리스 빌드가 깨진다. 순서·확인 안 한 것은 tuidock 레포(`~/Sites/tuidock`) `AGENTS.md` "현재 상태와 남은 일".
 - 실제 구글 캘린더 쓰기 경로(추가·수정·삭제·반복 범위·알림·URL)는 사용자가 직접 확인 전(목업으로만 검증).

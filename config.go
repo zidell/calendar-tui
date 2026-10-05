@@ -16,7 +16,7 @@ import (
 // 설정 파일. 에이전트도 설치된 앱만 보고 찾아 고칠 수 있게 한다(github.com/zidell/agent-configuration-accessibility).
 //
 //	config.toml  사용자가 고르는 설정. 항목마다 설명 주석. 바뀌면 실행 중인 앱이 다시 읽는다
-//	state.json   앱이 저절로 기억하는 값(마지막 보기·마지막 캘린더). 창 크기·글꼴 크기는 앱 실행기(tuidock)가 기억한다
+//	state.json   앱이 저절로 기억하는 값(마지막 보기·마지막 캘린더)
 //	settings.json 예전 단일 파일. 있으면 한 번 옮기고 settings.json.bak으로 남긴다
 const (
 	configName = "config.toml"
@@ -228,12 +228,12 @@ func (c *settings) renderConfig(cals []calendar) []byte {
 	fmt.Fprintf(&b, `# calendar-tui 환경설정 (TOML, # 뒤는 주석)
 #
 # 위치: %s
-#       어디인지 모르겠으면: calendar --config-path
+#       어디인지 모르겠으면: calendar-tui --config-path
 # 적용: 저장하면 실행 중인 앱이 바로 다시 읽는다(윈도우는 창으로 돌아올 때). 앱을 끌 필요 없다.
-# 검사: calendar --check-config  — 잘못된 값이 있으면 앱은 이전 값을 계속 쓰고 화면 맨 아래에 오류를 띄운다.
+# 검사: calendar-tui --check-config  — 잘못된 값이 있으면 앱은 이전 값을 계속 쓰고 화면 맨 아래에 오류를 띄운다.
 # 앱의 설정 화면(s)에서 [저장]하거나 앱이 시작할 때 캘린더 목록이 바뀌었으면 앱이 이 파일을 다시 쓴다.
 #   이 안내 주석과 이름 주석은 다시 만들어지지만, 직접 단 주석은 사라진다.
-# 마지막 보기·마지막으로 쓴 캘린더는 앱이 저절로 기억하는 값이라 같은 폴더 state.json에 있다(창 크기·글꼴 크기는 앱 실행기가 기억).
+# 마지막 보기·마지막으로 쓴 캘린더는 앱이 저절로 기억하는 값이라 같은 폴더 state.json에 있다.
 # 자격 증명은 없다. 캘린더 계정은 macOS 시스템 설정 → 인터넷 계정이 관리한다.
 
 # ── 표시 ──

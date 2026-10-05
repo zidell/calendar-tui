@@ -14,7 +14,6 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/zidell/tuidock"
 )
 
 // 모달은 스택으로 쌓는다. esc는 언제나 맨 위 모달 하나를 닫는다(취소).
@@ -99,9 +98,6 @@ func (m model) Init() tea.Cmd {
 
 func windowTitle() string { return L("▦ 캘린더", "▦ Calendar") }
 
-// dock은 앱 실행기(tuidock, Calendar TUI.app)와의 연결. 터미널에서 직접 실행하면 nil이고 메서드는 아무것도 안 한다.
-var dock *tuidock.Conn
-
 func (m model) top() modalKind {
 	if len(m.stack) == 0 {
 		return mNone
@@ -148,40 +144,15 @@ func (m model) move(t time.Time) model {
 	return m
 }
 
-// textInput은 글자를 치는 칸에 있는지. 여기선 Cmd+글자·Ctrl+H(지우기)를 단축키로 쓰지 않는다.
-func (m model) textInput() bool {
-	switch m.top() {
-	case mForm:
-		switch m.form.focus {
-		case fAllDay, fRepeat, fAlarm, fCalendar, fSave:
-			return false
-		}
-		return true
-	case mQuick:
-		return m.quickBtn < 0
-	case mGoto:
-		return m.gotoBtn < 0
-	case mMove:
-		return m.moveBtn < 0
-	case mSearch:
-		return true
-	}
-	return false
-}
-
-// Update는 포커스 들어옴·나감을 실행기에 알리고(그동안만 Cmd 조합이 이 앱으로 온다) 나머지는 update로 넘긴다.
+// Update는 포커스 들어옴·나감을 처리하고 나머지는 update로 넘긴다.
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
+	switch msg.(type) {
 	case tea.FocusMsg: // 바깥에서 바뀐 일정이 있을 수 있어 한 번 다시 읽는다(로컬 DB)
 		logLine("focus in")
-		dock.Focus(true)
 		m.db.invalidate()
 		m = m.syncToday()
 	case tea.BlurMsg:
 		logLine("focus out")
-		dock.Focus(false)
-	case cmdKeyMsg:
-		return m.cmdKey(msg.key)
 	}
 	return m.update(msg)
 }
@@ -217,11 +188,6 @@ func (m model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		logKey(msg, m.top())
 		if msg.String() == "ctrl+c" {
 			return m, tea.Quit
-		}
-		// Ctrl+H: 이 창만 숨긴다(Cmd+H와 같다, 실행기가 한다). 글자 칸에선 지우기 키라 그대로 둔다
-		if msg.String() == "ctrl+h" && !m.textInput() {
-			dock.Hide()
-			return m, nil
 		}
 		if m.top() == mNone {
 			return m.updateCal(msg)
@@ -303,7 +269,7 @@ func (m model) updateCal(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.step(1), nil
 	case "v":
 		return m.setView((m.view + 1) % viewCount), nil
-	case "1", "2", "3": // 1 월간 · 2 주간 · 3 목록(v 순서와 같음). Cmd+숫자도 같다(실행기)
+	case "1", "2", "3": // 1 월간 · 2 주간 · 3 목록(v 순서와 같음)
 		return m.setView(map[string]int{"1": vMonth, "2": vWeek, "3": vAgenda}[k.String()]), nil
 	case "t":
 		return m.move(m.today), nil
@@ -652,7 +618,7 @@ func (m model) goMonth() (tea.Model, tea.Cmd) {
 	return m.pop().move(t), nil
 }
 
-// version은 릴리스 빌드 때 -ldflags "-X main.version=v0.1.0"으로 넣는다(scripts/package.sh).
+// version은 릴리스 빌드 때 -ldflags "-X main.version=v0.1.0"으로 넣는다(.github/workflows/release.yml).
 var version = "dev"
 
 func main() {
@@ -708,7 +674,6 @@ func main() {
 	}
 	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithReportFocus(), tea.WithMouseCellMotion())
 	go watchSelf(p)
-	dock = tuidock.Open(func(key string) { p.Send(cmdKeyMsg{key}) })
 	go func() {
 		for range storeChanges {
 			p.Send(changedMsg{})
@@ -716,10 +681,6 @@ func main() {
 	}()
 	final, err := p.Run()
 	fm, _ := final.(model)
-	// 실행기가 창 크기·글꼴 크기를 기억하도록 창이 아직 있을 때 알린다. 다시 시작할 땐 같은 창을 그대로 쓴다
-	if !fm.reload {
-		dock.Close()
-	}
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -732,16 +693,17 @@ func main() {
 func usage() {
 	fmt.Fprint(flag.CommandLine.Output(), `calendar-tui — 터미널 월간 캘린더 (macOS 캘린더 계정을 EventKit으로 읽고 쓴다)
 
-사용: calendar [옵션]
+사용: calendar-tui [옵션]
 
 설정:
-  사용자 설정은 config.toml 하나다(언어·테마·주 시작·시각 표기·고른 요일 최소 폭, 계정·캘린더 표시 여부).
-  항목마다 설명 주석이 붙어 있다.
-  위치는 calendar --config-path 로 확인한다(맥 ~/Library/Application Support/calendar-tui/config.toml).
-  고쳐서 저장하면 실행 중인 앱이 바로 다시 읽는다. 검사: calendar --check-config
+  사용자 설정은 config.toml 하나다(언어·테마·주 시작·시각 표기·고른 요일 최소 폭, 키 입력 로그,
+  계정·캘린더 표시 여부). 항목마다 의미·허용값·기본값 주석이 붙어 있다.
+  위치는 calendar-tui --config-path 로 확인한다(맥 ~/Library/Application Support/calendar-tui/config.toml).
+  처음 실행할 때 만들어지고 맥에 등록된 계정·캘린더 목록이 채워진다.
+  [accounts]·[calendars]의 키는 ID, 값은 true(보임) / false(숨김), 줄 끝 주석이 이름이다.
+  고쳐서 저장하면 실행 중인 앱이 바로 다시 읽는다. 검사: calendar-tui --check-config
+  (잘못된 값이면 앱은 이전 값을 쓰고 화면 맨 아래에 오류를 띄운다. 앱 안 설정 화면도 같은 파일을 쓴다)
   마지막 보기·마지막으로 쓴 캘린더는 앱이 저절로 기억하며 같은 폴더 state.json에 있다.
-  창 크기·글꼴 크기는 앱(Dock의 Calendar TUI)이 기억한다.
-  앱 번들 안내: /Applications/Calendar TUI.app/Contents/Resources/readme.txt
 
 옵션:
 `)
@@ -817,47 +779,6 @@ func (m model) quickAction(b int) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	return m.commit(e, spanThis)
-}
-
-// cmdKeyMsg는 실행기(tuidock)가 넘긴 Cmd 조합("cmd+a", "cmd+shift+="). 창이 포커스인 동안 Terminal 대신 이 앱이
-// 받는다(Cmd+H·Cmd+M 제외). 한글 상태에서도 오므로 단축키를 확실히 쓸 수 있다.
-type cmdKeyMsg struct{ key string }
-
-// cmdKey: Cmd+글자 = 그 글자 단축키. 앱처럼 Cmd+Q·Cmd+W는 종료, Cmd+F는 검색, Cmd+,는 설정, Cmd+V는 붙여넣기,
-// Cmd +/-는 글꼴 크기. 글자 칸에서는 붙여넣기 말고는 무시한다(글자가 칸에 들어가지 않게).
-func (m model) cmdKey(k string) (tea.Model, tea.Cmd) {
-	logLine(k)
-	switch k {
-	case "cmd+q", "cmd+w":
-		return m, tea.Quit
-	case "cmd+=", "cmd+shift+=":
-		dock.Font(1)
-		return m, nil
-	case "cmd+-":
-		dock.Font(-1)
-		return m, nil
-	case "cmd+v":
-		if !m.textInput() {
-			return m, nil
-		}
-		s := strings.TrimSpace(strings.NewReplacer("\r\n", " ", "\n", " ", "\t", " ").Replace(tuidock.Paste()))
-		if s == "" {
-			return m, nil
-		}
-		return m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s), Paste: true})
-	case "cmd+c": // 고를 글자가 없다. 단축키 c(복제)로 넘기면 복사하려던 사람이 놀란다
-		return m, nil
-	case "cmd+f":
-		k = "/"
-	case "cmd+,":
-		k = "s"
-	default:
-		k = strings.TrimPrefix(k, "cmd+")
-	}
-	if m.textInput() || len([]rune(k)) != 1 { // 글자 칸, 또는 Cmd+Shift·Cmd+방향키 등은 쓰지 않는다
-		return m, nil
-	}
-	return m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(k)})
 }
 
 // setView는 보기를 바꾸고 기억한다(state.json).
