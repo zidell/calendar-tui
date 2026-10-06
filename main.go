@@ -14,6 +14,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/muesli/termenv"
 )
 
 // 모달은 스택으로 쌓는다. esc는 언제나 맨 위 모달 하나를 닫는다(취소).
@@ -661,7 +662,13 @@ func main() {
 	cfg.readOnly = *useMock // 목업은 설정을 읽기만 한다(실제 창 크기·표시 설정을 덮지 않게)
 	// 터미널에 배경색을 묻는다(OSC 11). 프로그램이 입력을 잡기 전에 한 번만(Bubble Tea init이 이미 물어 둔 값이라 비용 없음).
 	// 나중에 설정에서 auto로 바꿔도 맞게 테마와 무관하게 묻는다
-	termDark = lipgloss.HasDarkBackground()
+	// 배경색 값도 남겨 달력 선 색을 배경에 맞춘다(lineColor). 응답이 없으면 termenv가 검정으로 본다(HasDarkBackground와 같은 판정)
+	bg := lipgloss.DefaultRenderer().Output().BackgroundColor()
+	_, _, l := termenv.ConvertToRGB(bg).Hsl()
+	termDark = l < 0.5
+	if rgb, ok := bg.(termenv.RGBColor); ok {
+		termBg, termBgDark = string(rgb), termDark
+	}
 	if sd, ok := systemDark(); ok {
 		followSystem = sd == termDark
 	}

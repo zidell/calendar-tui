@@ -2,12 +2,14 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/mattn/go-runewidth"
+	"github.com/muesli/termenv"
 )
 
 // 색은 테마(어두운 배경·밝은 배경)마다 다르다. applyTheme이 정한다. 모달 테두리·선택 막대는 무채색.
@@ -31,6 +33,41 @@ var termDark = true
 // 시작 때부터 어긋나 있으므로 따라가지 않는다. Bubble Tea v1은 실행 중 OSC 11 응답을 해석하지 못해 다시 묻지 못한다.
 var followSystem bool
 
+// termBg는 시작 때 OSC 11로 받은 터미널 배경색("#rrggbb", 모르면 ""), termBgDark는 그때의 밝기.
+// 시스템 모양을 따라 밝기가 바뀌면 배경도 바뀌었으므로 쓰지 않는다(lineColor).
+var (
+	termBg     string
+	termBgDark bool
+)
+
+// lineColor는 달력 선 색. 어두운 배경이면 배경보다 밝게 한다. 트루컬러는 채널마다 34(2026-10-06 15 → 22 → 34, 사용자: 더 진하게),
+// 256색은 15(Terminal.app 배경 #171717 → #262626 = 235. 다음 단계 236은 밝다는 이력이 있어 그대로 둔다).
+// 235로 고정했더니 배경이 #282828인 터미널(tuidock 내장)에선 선이 배경에 묻혀 안 보였다(2026-10-06).
+// 256색 터미널에선 회색 단계(232~255)에서 고른다(termenv의 256색 변환은 #262626을 232로 바꿔 쓸 수 없다).
+func lineColor(dark bool) lipgloss.TerminalColor {
+	var r, g, b int
+	if !dark || !termBgDark || termBg == "" {
+		if dark {
+			return lipgloss.Color("235")
+		}
+		return lipgloss.Color("252")
+	}
+	if _, err := fmt.Sscanf(termBg, "#%02x%02x%02x", &r, &g, &b); err != nil {
+		return lipgloss.Color("235")
+	}
+	trueColor := lipgloss.ColorProfile() == termenv.TrueColor
+	d := 15
+	if trueColor {
+		d = 34
+	}
+	up := func(v int) int { return min(v+d, 255) }
+	if !trueColor {
+		v := (up(r) + up(g) + up(b)) / 3
+		return lipgloss.Color(strconv.Itoa(232 + min(max((v-8+5)/10, 0), 23)))
+	}
+	return lipgloss.Color(fmt.Sprintf("#%02x%02x%02x", up(r), up(g), up(b)))
+}
+
 // applyTheme은 "auto"·"dark"·"light"에 맞춰 색을 정한다.
 // 어두운 배경 값의 이력: 달력 선 240 → 236(밝음) → 234(배경 #171717보다 어두워 보임) → 235.
 func applyTheme(theme string) {
@@ -46,7 +83,7 @@ func applyTheme(theme string) {
 	selBg = c("237", "254")   // 달력에서 고른 날 배경
 	titleSt = lipgloss.NewStyle().Bold(true)
 	headerSt = lipgloss.NewStyle().Foreground(c("245", "242"))
-	borderSt = lipgloss.NewStyle().Foreground(c("235", "252")) // 달력 선
+	borderSt = lipgloss.NewStyle().Foreground(lineColor(dark)) // 달력 선
 	plainSt = lipgloss.NewStyle()
 	boldSt = lipgloss.NewStyle().Bold(true)
 	sundaySt = lipgloss.NewStyle().Foreground(c("203", "160"))
