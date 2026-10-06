@@ -34,7 +34,7 @@ var termDark = true
 var followSystem bool
 
 // termBg는 시작 때 OSC 11로 받은 터미널 배경색("#rrggbb", 모르면 ""), termBgDark는 그때의 밝기.
-// 시스템 모양을 따라 밝기가 바뀌면 배경도 바뀌었으므로 쓰지 않는다(lineColor).
+// 시스템 모양을 따라 밝기가 바뀌면 배경도 바뀌었으므로 쓰지 않는다(lineColor). 모드 2031 알림을 주는 터미널이면 다시 물어 갱신한다(termtheme.go).
 var (
 	termBg     string
 	termBgDark bool

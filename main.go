@@ -160,6 +160,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if dark, ok := darkReport(msg); ok {
+		return m.colorScheme(dark)
+	}
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
@@ -177,8 +180,8 @@ func (m model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.db.invalidate() // config.toml도 다시 읽는다
 		return m, nil
 	case appearanceMsg:
-		logLine(fmt.Sprintf("appearance dark=%v follow=%v", msg.dark, followSystem))
-		if followSystem && termDark != msg.dark {
+		logLine(fmt.Sprintf("appearance dark=%v follow=%v term2031=%v", msg.dark, followSystem, term2031))
+		if followSystem && !term2031 && termDark != msg.dark { // 알림을 주는 터미널은 그 알림을 따른다(termtheme.go)
 			termDark = msg.dark
 			applyTheme(m.db.cfg.Theme)
 		}
@@ -194,6 +197,12 @@ func (m model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		logLine(fmt.Sprintf("click %d,%d %v", msg.X, msg.Y, m.top()))
 		return m.click(msg.X, msg.Y)
 	case tea.KeyMsg:
+		if eaten, got := bgReply(msg); eaten {
+			if got {
+				applyTheme(m.db.cfg.Theme)
+			}
+			return m, nil
+		}
 		logKey(msg, m.top())
 		if msg.String() == "ctrl+c" {
 			return m, tea.Quit
@@ -697,7 +706,9 @@ func main() {
 			p.Send(changedMsg{})
 		}
 	}()
+	fmt.Print(enable2031)
 	final, err := p.Run()
+	fmt.Print(disable2031)
 	fm, _ := final.(model)
 	if err != nil {
 		fmt.Println(err)
