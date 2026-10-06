@@ -1,12 +1,21 @@
-# 릴리스: v로 시작하는 태그를 푸시하면 macOS에서 유니버설(Apple Silicon·Intel) 실행 파일을 빌드해 GitHub Releases에 올린다.
+# 릴리스: main에 푸시하면 마지막 v 태그의 패치 번호를 하나 올려(v0.2.0 → v0.2.1) 자동으로 릴리스한다(문서만 바뀐 푸시는 건너뜀).
+# 부·주 버전을 올릴 때는 scripts/release.sh v0.3.0처럼 태그를 직접 푸시한다(같은 빌드·릴리스).
+# macOS에서 유니버설(Apple Silicon·Intel) 실행 파일을 빌드해 GitHub Releases에 올린다.
 # 설치 스크립트(docs/install.sh)는 releases/latest/download/calendar-tui-macos.tar.gz를 받는다.
 # 수동 실행(workflow_dispatch)은 빌드만 해서 결과를 아티팩트로 남긴다(릴리스 안 함, 빌드 점검용).
 name: release
 
 on:
   push:
+    branches: [main]
     tags: ["v*"]
+    paths-ignore: ["docs/**", "**.md", "LICENSE"]
   workflow_dispatch:
+
+# 버전 계산이 겹치지 않게 한 번에 하나씩
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -16,15 +25,34 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 태그까지 받아 다음 버전을 정한다
+      - name: Version
+        run: |
+          if [[ "$GITHUB_REF_TYPE" == tag ]]; then
+            V="$GITHUB_REF_NAME"
+          elif [[ "$GITHUB_EVENT_NAME" == push ]]; then
+            if T=$(git tag --points-at HEAD -l 'v*' | head -1) && [ -n "$T" ]; then
+              echo "이미 $T 태그가 있다"; V=""
+            else
+              L=$(git tag -l 'v*' --sort=-v:refname | head -1)
+              IFS=. read -r MA MI PA <<<"${L#v}"
+              V="v$MA.$MI.$((PA + 1))"
+            fi
+          else
+            V="dev-${GITHUB_SHA::7}"
+          fi
+          echo "V=$V" >>"$GITHUB_ENV"
+          echo "버전: ${V:-건너뜀}"
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
       - name: Test
+        if: env.V != ''
         run: go test ./...
       - name: Build universal binary
+        if: env.V != ''
         run: |
-          V="${GITHUB_REF_NAME}"
-          [[ "$GITHUB_REF_TYPE" == tag ]] || V="dev-${GITHUB_SHA::7}"
           mkdir -p dist
           CGO_ENABLED=1 GOARCH=arm64 go build -ldflags "-X main.version=$V" -o dist/calendar-tui-arm64 .
           CGO_ENABLED=1 GOARCH=amd64 CC="clang -arch x86_64" go build -ldflags "-X main.version=$V" -o dist/calendar-tui-amd64 .
@@ -34,16 +62,17 @@ jobs:
           tar -czf dist/calendar-tui-macos.tar.gz -C dist calendar-tui
           shasum -a 256 dist/calendar-tui-macos.tar.gz
       - name: Upload build (manual run)
-        if: github.ref_type != 'tag'
+        if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
           name: calendar-tui-macos
           path: dist/calendar-tui-macos.tar.gz
       - name: Publish release
-        if: github.ref_type == 'tag'
+        if: github.event_name == 'push' && env.V != ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/calendar-tui-macos.tar.gz \
-            --title "$GITHUB_REF_NAME" \
+          # main 푸시면 태그도 여기서 그 커밋에 만든다(GITHUB_TOKEN으로 만든 태그는 이 워크플로를 다시 부르지 않는다)
+          gh release create "$V" dist/calendar-tui-macos.tar.gz --target "$GITHUB_SHA" \
+            --title "$V" \
             --notes "macOS(Apple Silicon·Intel) 실행 파일. 설치·업데이트: \`curl -fsSL https://zidell.github.io/calendar-tui/install.sh | bash\`"

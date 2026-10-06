@@ -1,6 +1,7 @@
 #!/bin/bash
-# 릴리스: 태그를 만들어 푸시한다. 빌드와 업로드는 GitHub Actions(.github/workflows/release.yml)가 한다.
-# 사용: scripts/release.sh v0.1.1
+# 부·주 버전 릴리스: 태그를 만들어 푸시한다. 빌드와 업로드는 GitHub Actions(.github/workflows/release.yml)가 한다.
+# 패치 버전은 main에 푸시하면 Actions가 알아서 올리므로 이 스크립트가 필요 없다.
+# 사용: scripts/release.sh v0.3.0
 set -e
 cd "$(dirname "$0")/.."
 V="$1"

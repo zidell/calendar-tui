@@ -50,8 +50,8 @@ README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·�
 | `termtheme.go` | 터미널 다크·라이트 알림(모드 2031) 받기, 실행 중 배경색 다시 묻기(OSC 11) |
 | `keylog.go` | 키 입력 로그(기본 꺼짐, `config.toml` `[debug] key_log`. 입력한 글자도 남아서 공개 전 기본값을 끔) |
 | `dev.sh`, `scripts/term-run.sh` | 개발용 실행 |
-| `scripts/release.sh` | 릴리스: `scripts/release.sh v0.1.1` → 확인 후 태그만 푸시. 빌드·업로드는 Actions |
-| `.github/workflows/release.yml` | `v*` 태그 푸시 → macOS 러너에서 테스트·유니버설 빌드 → Releases에 `calendar-tui-macos.tar.gz`(실행 파일 하나). 수동 실행은 빌드만(아티팩트) |
+| `scripts/release.sh` | 부·주 버전 릴리스만: `scripts/release.sh v0.3.0` → 확인 후 태그만 푸시. 패치 릴리스는 main 푸시로 자동 |
+| `.github/workflows/release.yml` | main 푸시(문서만 바뀐 건 제외) → 마지막 태그 패치 +1로 자동 릴리스, `v*` 태그 푸시 → 그 버전. macOS 러너에서 테스트·유니버설 빌드 → Releases에 `calendar-tui-macos.tar.gz`(실행 파일 하나). 수동 실행은 빌드만(아티팩트) |
 | `docs/` | GitHub Pages(https://zidell.github.io/calendar-tui/): 소개 페이지 `index.html`, 설치 스크립트 `install.sh`(`curl … \| bash`, `~/.local/bin/calendar-tui`에 설치) |
 
 - UI는 `backend` 인터페이스(기간 조회 / 저장 / 삭제, 반복 범위 `span`)만 부른다. 나중에 Google API·CalDAV 구현체를 같은 자리에 붙인다.
@@ -183,7 +183,7 @@ README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·�
 
 - 저장소 공개, GPL-3.0(2026-10-05 MIT에서 변경). 설치는 `curl -fsSL https://zidell.github.io/calendar-tui/install.sh | bash` 한 줄: 최신 릴리스 `tar.gz`를 받아 실행 파일을 `~/.local/bin/calendar-tui`(`BIN_DIR`)에 두고, PATH에 없으면 알려 준다. 명령 이름은 macOS 기본 `/usr/bin/calendar`와 겹치지 않게 `calendar-tui`. 다시 실행하면 업데이트(실행 중이면 새 실행 파일을 감지해 제자리 재시작).
 - 공증(연 $99) 없이 되는 이유: 브라우저로 받은 파일엔 격리 표시(`com.apple.quarantine`)가 붙어 Gatekeeper가 막지만 `curl`로 받은 파일엔 붙지 않는다. Go 링커가 arm64 바이너리에 ad-hoc 서명을 넣어 Apple Silicon에서도 실행된다. 그래서 파일을 브라우저로 받아 여는 안내는 하지 않는다.
-- 릴리스는 GitHub Actions가 만든다(사용자 지시, 2026-10-04: 미리 빌드한 릴리스가 사용자 맥 빌드보다 낫고, 릴리스 수고는 Actions로 없앤다). `scripts/release.sh vX.Y.Z`는 깨끗한 작업 트리·푸시된 main을 확인하고 태그만 푸시한다. v0.1.0은 로컬에서 만들었다.
+- 릴리스는 GitHub Actions가 만든다(사용자 지시, 2026-10-04: 미리 빌드한 릴리스가 사용자 맥 빌드보다 낫고, 릴리스 수고는 Actions로 없앤다). **main에 푸시하면 릴리스까지 자동이다(사용자 지시, 여러 번 반복됨 — 2026-10-06 자동화).** 마지막 `v*` 태그의 패치 번호를 하나 올려 그 커밋에 태그·릴리스를 만든다(`docs/`·`*.md`·`LICENSE`만 바뀐 푸시는 건너뜀). 따로 릴리스 단계를 두거나 "릴리스할까요?"라고 묻지 않는다. 부·주 버전을 올릴 때만 `scripts/release.sh vX.Y.0`(깨끗한 작업 트리·푸시된 main 확인 후 태그만 푸시). v0.1.0은 로컬에서 만들었다.
 - 릴리스는 유니버설(arm64 + x86_64): `CC="clang -arch x86_64"`로 cgo 교차 빌드 후 `lipo`(`release.yml`). 인텔 실기기 확인은 못 했다. 버전은 `-ldflags -X main.version`(`calendar-tui --version`).
 - 설치 스크립트 시험은 `TAR_URL=file://… BIN_DIR=… bash docs/install.sh`로 임시 폴더에.
 - 윈도우는 배포하지 않는다: 윈도우엔 EventKit처럼 시스템 계정 일정을 앱에 주는 창구가 사실상 없다(WinRT `AppointmentStore`는 패키지 신원이 필요하고, 데이터를 채우던 "메일 및 일정" 앱이 새 Outlook으로 바뀜 — 미확인 지식). 목업만 보이는 앱을 내놓지 않으려고 뺐다. 윈도우는 Google API·Graph 백엔드가 생기면 다시 본다.
