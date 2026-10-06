@@ -13,7 +13,8 @@ import (
 )
 
 // watchSelf는 실행 파일이 새로 빌드되면 reloadMsg를 보낸다. 개발 중 띄워둔 창이 바로 갱신되게 하려는 것.
-// 같은 주기에 config.toml도 보고 바뀌면 configMsg를 보낸다(새 감시 루프를 두지 않으려고 여기서 같이 본다).
+// 같은 주기에 config.toml도 보고 바뀌면 configMsg를, 시스템 모양(다크·라이트)이 바뀌면 appearanceMsg를 보낸다
+// (새 감시 루프를 두지 않으려고 여기서 같이 본다). 전역 설정 파일 mtime은 모양을 바꿔도 바로 바뀌지 않아(측정) 값을 직접 읽는다.
 func watchSelf(p *tea.Program) {
 	exe, err := os.Executable()
 	if err != nil {
@@ -30,7 +31,12 @@ func watchSelf(p *tea.Program) {
 	}
 	orig, prev := mtime(), time.Time{}
 	cfgMod := configModTime()
+	sysDark, sysOK := systemDark()
 	for range time.Tick(300 * time.Millisecond) {
+		if d, ok := systemDark(); ok && sysOK && d != sysDark {
+			sysDark = d
+			p.Send(appearanceMsg{d})
+		}
 		if t := configModTime(); !t.Equal(cfgMod) {
 			cfgMod = t
 			p.Send(configMsg{})

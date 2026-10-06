@@ -26,6 +26,11 @@ var themeDark = true
 // termDark는 터미널 배경이 어두운지(시작 때 한 번 물어 둔다, main.go). theme = "auto"일 때 쓴다.
 var termDark = true
 
+// followSystem은 터미널 배경이 시스템 모양(다크·라이트)을 따라가는지. 시작 때 물어 둔 배경과 시스템 모양이 같으면
+// 따라간다고 보고, 실행 중 시스템 모양이 바뀌면 termDark도 바꾼다(appearanceMsg). 배경을 고정한 터미널 프로필이면
+// 시작 때부터 어긋나 있으므로 따라가지 않는다. Bubble Tea v1은 실행 중 OSC 11 응답을 해석하지 못해 다시 묻지 못한다.
+var followSystem bool
+
 // applyTheme은 "auto"·"dark"·"light"에 맞춰 색을 정한다.
 // 어두운 배경 값의 이력: 달력 선 240 → 236(밝음) → 234(배경 #171717보다 어두워 보임) → 235.
 func applyTheme(theme string) {

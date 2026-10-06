@@ -70,10 +70,11 @@ type model struct {
 }
 
 type (
-	reloadMsg  struct{}
-	configMsg  struct{} // config.toml이 바뀜(파일 감시)
-	refreshMsg struct{}
-	changedMsg struct{} // EventKit이 알린 바깥 변경
+	reloadMsg     struct{}
+	configMsg     struct{}            // config.toml이 바뀜(파일 감시)
+	appearanceMsg struct{ dark bool } // 시스템 모양(다크·라이트)이 바뀜(파일 감시 루프에서 같이 봄)
+	refreshMsg    struct{}
+	changedMsg    struct{} // EventKit이 알린 바깥 변경
 )
 
 // 바깥 변경은 EventKit 알림(changedMsg)으로 즉시 반영한다. 이 주기 새로고침은 알림을 놓쳤을 때를 위한 최후 수단.
@@ -173,6 +174,13 @@ func (m model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, refreshTick()
 	case configMsg:
 		m.db.invalidate() // config.toml도 다시 읽는다
+		return m, nil
+	case appearanceMsg:
+		logLine(fmt.Sprintf("appearance dark=%v follow=%v", msg.dark, followSystem))
+		if followSystem && termDark != msg.dark {
+			termDark = msg.dark
+			applyTheme(m.db.cfg.Theme)
+		}
 		return m, nil
 	case changedMsg:
 		logLine("store changed")
@@ -650,9 +658,12 @@ func main() {
 		return
 	}
 	cfg := loadSettings()
-	cfg.readOnly = *useMock              // 목업은 설정을 읽기만 한다(실제 창 크기·표시 설정을 덮지 않게)
-	if or(cfg.Theme, "auto") == "auto" { // 터미널에 배경색을 묻는다(OSC 11). 프로그램이 입력을 잡기 전에 한 번만
-		termDark = lipgloss.HasDarkBackground()
+	cfg.readOnly = *useMock // 목업은 설정을 읽기만 한다(실제 창 크기·표시 설정을 덮지 않게)
+	// 터미널에 배경색을 묻는다(OSC 11). 프로그램이 입력을 잡기 전에 한 번만(Bubble Tea init이 이미 물어 둔 값이라 비용 없음).
+	// 나중에 설정에서 auto로 바꿔도 맞게 테마와 무관하게 묻는다
+	termDark = lipgloss.HasDarkBackground()
+	if sd, ok := systemDark(); ok {
+		followSystem = sd == termDark
 	}
 	cfg.apply()
 	var b backend = newMockBackend()
