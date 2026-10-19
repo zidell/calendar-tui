@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -48,6 +49,9 @@ func lineColor(dark bool) lipgloss.TerminalColor {
 	var r, g, b int
 	if !dark || !termBgDark || termBg == "" {
 		if dark {
+			if os.Getenv("TERM_PROGRAM") == "tuidock" && os.Getenv("COLORTERM") == "truecolor" {
+				return lipgloss.Color("#4a4a4a") // OSC 11 응답이 늦거나 없을 때 tuidock 기본 배경(#282828)보다 밝게
+			}
 			return lipgloss.Color("235")
 		}
 		return lipgloss.Color("252")

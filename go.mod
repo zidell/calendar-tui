@@ -10,6 +10,7 @@ require (
 	github.com/charmbracelet/x/ansi v0.11.6
 	github.com/mattn/go-runewidth v0.0.19
 	github.com/muesli/termenv v0.16.0
+	github.com/zidell/tuidock v0.3.2
 )
 
 require (

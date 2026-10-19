@@ -45,7 +45,7 @@ func (m model) colorScheme(dark bool) (tea.Model, tea.Cmd) {
 	logLine(fmt.Sprintf("color scheme dark=%v", dark))
 	first := !term2031
 	term2031 = true
-	if first && dark == termDark { // 시작 때 물은 답(996). 시작 때 잰 배경 그대로
+	if first && dark == termDark && termBg != "" { // 시작 때 배경색까지 받은 경우에만 다시 묻지 않는다
 		return m, nil
 	}
 	termDark = dark

@@ -19,6 +19,7 @@ type quickResult struct {
 var (
 	// 날짜
 	qRelKo   = regexp.MustCompile(`(^|\s)(오늘|내일|모레|글피)(\s|$)`)
+	qAfterKo = regexp.MustCompile(`(^|\s)(\d{1,3})\s*(일|주일|주)\s*(후|뒤)(에)?(\s|$)`)
 	qRelEn   = regexp.MustCompile(`(?i)(^|\s)(today|tonight|tomorrow|tmr)(\s|$)`)
 	qWdKo    = regexp.MustCompile(`(^|\s)(다음\s*주|담주|이번\s*주)?\s*([월화수목금토일])요일(에)?(\s|$)`)
 	qWdEn    = regexp.MustCompile(`(?i)(^|\s)(next\s+|this\s+)?(mon|tue|wed|thu|fri|sat|sun)[a-z]*(\s|$)`)
@@ -63,6 +64,12 @@ func parseQuick(in string, base, today time.Time) quickResult {
 	}
 	if g := qRelKo.FindStringSubmatchIndex(s); g != nil {
 		n := map[string]int{"오늘": 0, "내일": 1, "모레": 2, "글피": 3}[s[g[4]:g[5]]]
+		date, s = today.AddDate(0, 0, n), " "+cutOut(s, []int{g[0], g[1]})+" "
+	} else if g := qAfterKo.FindStringSubmatchIndex(s); g != nil {
+		n, _ := strconv.Atoi(s[g[4]:g[5]])
+		if strings.HasPrefix(s[g[6]:g[7]], "주") {
+			n *= 7
+		}
 		date, s = today.AddDate(0, 0, n), " "+cutOut(s, []int{g[0], g[1]})+" "
 	} else if g := qRelEn.FindStringSubmatchIndex(s); g != nil {
 		n := 0

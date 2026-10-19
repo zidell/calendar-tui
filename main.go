@@ -15,7 +15,12 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/muesli/termenv"
+	"github.com/zidell/tuidock"
 )
+
+type dockKeyMsg string
+
+var dock *tuidock.Conn
 
 // 모달은 스택으로 쌓는다. esc는 언제나 맨 위 모달 하나를 닫는다(취소).
 type modalKind int
@@ -150,10 +155,12 @@ func (m model) move(t time.Time) model {
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
 	case tea.FocusMsg: // 바깥에서 바뀐 일정이 있을 수 있어 한 번 다시 읽는다(로컬 DB)
+		dock.Focus(true)
 		logLine("focus in")
 		m.db.invalidate()
 		m = m.syncToday()
 	case tea.BlurMsg:
+		dock.Focus(false)
 		logLine("focus out")
 	}
 	return m.update(msg)
@@ -164,6 +171,18 @@ func (m model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.colorScheme(dark)
 	}
 	switch msg := msg.(type) {
+	case dockKeyMsg:
+		switch string(msg) {
+		case "cmd+q":
+			return m, tea.Quit
+		case "cmd+a":
+			return m.update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("a")})
+		case "cmd+v":
+			if pasted := tuidock.Paste(); pasted != "" {
+				return m.update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(pasted), Paste: true})
+			}
+		}
+		return m, nil
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
 		// 크기가 바뀌면 Terminal이 기존 줄을 다시 흘려 놓아 2배 크기 줄(ESC#3/#4) 표시가 엉뚱한 줄에 남는다.
@@ -700,6 +719,7 @@ func main() {
 		m = m.move(t)
 	}
 	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithReportFocus(), tea.WithMouseCellMotion())
+	dock = tuidock.Open(func(key string) { p.Send(dockKeyMsg(key)) })
 	go watchSelf(p)
 	go func() {
 		for range storeChanges {
@@ -710,6 +730,9 @@ func main() {
 	final, err := p.Run()
 	fmt.Print(disable2031)
 	fm, _ := final.(model)
+	if !fm.reload {
+		dock.Close()
+	}
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

@@ -53,7 +53,7 @@ cd calendar-tui && go build -o calendar-tui . && mv calendar-tui ~/.local/bin/
   - Add/Edit: title, all day, start/end, repeat (never, daily, weekly, monthly, yearly), alert (none, at start, 5/10/15/30 min, 1 hour, 1 day before; all-day events: 9am on the day, the day before, or a week before), calendar, location, URL, notes. New events default to the calendar you last saved to.
   - Duplicate opens that occurrence as a new non-repeating event in the form. Move changes only the date and keeps the time and length.
   - Editing, deleting or moving a repeating event asks **This event / All future events**.
-- **Quick add** (`a`): type one line, e.g. `tomorrow 3pm lunch`, `fri 9:30am standup for 15m`, `oct 20 all day offsite`, or in Korean `내일 오후 3시 치과`, `금요일 10:30-12 리뷰`. No date means the selected day, no time means all day, no length means one hour. Hours 1–7 without am/pm are read as pm. Check the preview and press `Enter` (or `[Add]`), or `[Details]` to continue in the full form.
+- **Quick add** (`a`): type one line, e.g. `tomorrow 3pm lunch`, `fri 9:30am standup for 15m`, `oct 20 all day offsite`, or in Korean `내일 오후 3시 치과`, `3일후 오후 3시 회의` (also `3일 후`, `3일 뒤`, `2주 후`), `금요일 10:30-12 리뷰`. No date means the selected day, no time means all day, no length means one hour. Hours 1–7 without am/pm are read as pm. Check the preview and press `Enter` (or `[Add]`), or `[Details]` to continue in the full form.
 - **Search** (`/`): titles, locations and notes of events within a year of today. Upcoming events first, then past ones. Picking a result goes to that day and opens its details; `esc` returns to the search.
 - Windows that change something only commit when you press their button (`[Save]`, `[Delete]`, `[Go]`, `[Add]`). `esc` always closes without changing anything.
 - With a Korean (or other composing) input method active, single-letter shortcuts are held by the input method and never reach the app. Switch to English. The app doesn't change your input source.
@@ -93,6 +93,8 @@ cd calendar-tui && go build -o calendar-tui . && mv calendar-tui ~/.local/bin/
 | Delete confirmation | `Enter` / `y` | Delete |
 | Settings › Calendars | `Space` `Enter` | Toggle (applied with `[Save]` or `Ctrl+S`) |
 | Settings › Display | `← →` `Space` | Change a value (applied with `[Save]` or `Ctrl+S`) |
+
+In a tuidock app, `Cmd+A` also opens Quick Add, just like `a`. Use `a` in a regular terminal.
 
 ### Mouse
 
