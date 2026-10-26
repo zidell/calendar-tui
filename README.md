@@ -146,7 +146,7 @@ tuidock 앱에서 실행하면 `Cmd+A`도 `a`와 같이 빠른 추가를 연다.
 
 - **캘린더 선택**: 계정(구글·iCloud …)마다 그 아래 캘린더를 켜고 끈다. 계정을 끄면 그 계정의 캘린더가 모두 숨는다. 새로 생긴 계정·캘린더는 기본으로 보인다.
 - **표시**: 언어(자동·한국어·English), 테마(자동·어두운 배경·밝은 배경), 주 시작(일요일·월요일), 시각 표기(24시간·12시간), 좁을 때 고른 요일 최소 폭(영문 기준 글자 수, 0이면 넓히지 않음).
-- 설정 파일: 맥 `~/Library/Application Support/calendar-tui/config.toml`, 윈도우 `%APPDATA%\calendar-tui\config.toml`(경로 확인: `calendar-tui --config-path`). `[backend]`에 일정 저장소(`auto`·`eventkit`·`google`, 바꾸면 다시 실행), `[display]`에 표시 설정, `[accounts]`·`[calendars]`에 계정·캘린더마다 `"ID" = true/false` 한 줄(줄 끝 주석이 이름). 항목마다 설명 주석이 있다. 직접 고쳐도 되고, 저장하면 실행 중인 앱이 바로 다시 읽는다(윈도우는 창으로 돌아올 때). 검사: `calendar-tui --check-config`(잘못되면 앱은 이전 값을 쓰고 화면 맨 아래에 오류).
+- 설정 파일: 맥 `~/Library/Application Support/calendar-tui/config.toml`, 윈도우 `%APPDATA%\calendar-tui\config.toml`(경로 확인: `calendar-tui --config-path`). `[backend]`에 일정 저장소(`auto`·`eventkit`·`google`, 바꾸면 다시 실행), `[display]`에 표시 설정, `[accounts]`·`[calendars]`에 계정·캘린더마다 `"ID" = true/false` 한 줄(줄 끝 주석이 이름). 항목마다 설명 주석이 있다. 직접 고쳐도 되고, 저장하면 실행 중인 앱이 바로 다시 읽는다. 검사: `calendar-tui --check-config`(잘못되면 앱은 이전 값을 쓰고 화면 맨 아래에 오류).
 - 마지막 보기·마지막으로 쓴 캘린더는 앱이 저절로 기억하는 값이라 같은 폴더 `state.json`에 따로 둔다. 예전 `settings.json`은 처음 실행 때 옮기고 `.bak`으로 남긴다.
 - AI 에이전트가 설정을 찾아 고칠 수 있게 [Agent Configuration Accessibility](https://github.com/zidell/agent-configuration-accessibility) 컨벤션을 따른다: `calendar-tui --help`, 항목마다 설명 주석.
 

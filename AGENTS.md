@@ -20,7 +20,7 @@ README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·�
 - 구글 OAuth 기본 클라이언트는 저장소에 없다. 개발 빌드에 넣으려면 Cloud 콘솔에서 받은 클라이언트 JSON을 `~/.calendar-tui-google-client.json`(커밋 금지)에 두면 `dev.sh`·`scripts/dev.ps1`이 `-ldflags -X`로 넣는다. 없으면 설정 폴더 `google_client.json`을 읽고, 그것도 없으면 구글 백엔드가 안내 오류를 낸다.
 
 - 코드를 고친 뒤에는 묻지 말고 항상 `./dev.sh`(윈도우는 `scripts/dev.ps1`)를 실행해 사용자가 바로 확인할 수 있게 한다.
-  - 윈도우(`scripts/dev.ps1`): 실행 중인 exe를 덮어쓸 수 없고 자동 재시작도 없어, 떠 있던 calendar-tui를 끝내고 `~/.local/bin/calendar-tui.exe`로 바꾼 뒤 Windows Terminal 새 창으로 띄운다.
+  - 윈도우(`scripts/dev.ps1`): 실행 중인 exe는 덮어쓸 수 없지만 이름은 바꿀 수 있어, 옛 `~/.local/bin/calendar-tui.exe`를 `calendar-tui.exe.<시각>.old`로 옮기고 새 빌드를 같은 자리에 둔다. 떠 있으면 앱이 감지해 같은 창에서 다시 시작한다(아래 "개발용 자동 재시작"). 떠 있지 않으면 이 exe를 가리키는 tuidock 앱(시작 메뉴 TUIDock 폴더 바로가기)으로, 없으면 Windows Terminal 새 창으로 띄운다. 개발 PC에선 tuidock 앱 "calendar-tui"(`%APPDATA%\tuidock\calendar-tui-dc3c01fedd56`, 아이콘 `docs/icon.png`)를 작업 표시줄에 고정해 두었다(2026-10-26 사용자 지시: 이 윈도우에선 항상 최신 로컬 빌드를 바로 본다). 앱·창은 탐색기(바로가기)로 띄운다 — 에이전트 셸에서 바로 띄우면 `NO_COLOR` 등이 물려간다.
   - 빌드한 바이너리를 `~/.local/bin/calendar-tui`(설치 스크립트가 까는 자리)로 바꾼다(옆에 쓰고 `mv`로 교체 — 실행 중인 파일을 덮어쓰면 프로세스가 죽을 수 있다).
   - `dev.local.sh`(커밋하지 않음)가 있으면 띄우기는 그것에 맡긴다(설치한 바이너리 경로를 인자로 준다).
   - 없으면 떠 있지 않을 때 Terminal 창을 띄워 실행한다.
@@ -189,7 +189,8 @@ README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·�
 
 ### 개발용 자동 재시작
 
-- 앱(맥·리눅스)은 자기 실행 파일 mtime을 0.3초마다 본다. 바뀌고 한 번 더 같으면(쓰기 끝) 종료 후 `exec`로 새 실행 파일로 바꾼다. 보던 날짜는 `CAL_CURSOR`로 넘긴다. 윈도우는 실행 중 exe를 덮어쓸 수 없어 없음.
+- 앱(맥·리눅스)은 자기 실행 파일 mtime을 0.3초마다 본다. 바뀌고 한 번 더 같으면(쓰기 끝) 종료 후 `exec`로 새 실행 파일로 바꾼다. 보던 날짜는 `CAL_CURSOR`로 넘긴다.
+- 윈도우(`reload_windows.go`, 2026-10-26): 시작 때 잡은 경로의 mtime을 같은 식으로 본다(`dev.ps1`이 옛 파일 이름을 바꾸고 새 파일을 둔다). `exec`가 없어 새 실행 파일을 같은 콘솔에서 자식으로 띄우고 끝날 때까지 기다린다 — 창을 띄운 프로세스(tuidock·터미널이 지켜보는 것)가 살아 있어야 창이 닫히지 않는다. 다시 시작할 때마다 기다리는 옛 프로세스가 하나씩 남는다(개발 중에만, 창을 닫으면 모두 끝남). 기다리는 쪽은 Ctrl+C 신호를 무시한다. tuidock 연결은 다시 시작할 때 닫지 않고(`bye`를 보내면 창이 닫힘) 새 프로세스가 다시 연다. 같은 감시 루프에서 `config.toml`도 본다(전엔 윈도우만 창으로 돌아올 때 다시 읽었다). tuidock 창 안에서 다시 시작되는 것 확인.
 
 ### 큰 월 제목: DEC 2배 크기 줄
 
