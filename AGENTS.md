@@ -20,7 +20,7 @@ README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·�
 - 구글 OAuth 기본 클라이언트는 저장소에 없다. 개발 빌드에 넣으려면 Cloud 콘솔에서 받은 클라이언트 JSON을 `~/.calendar-tui-google-client.json`(커밋 금지)에 두면 `dev.sh`·`scripts/dev.ps1`이 `-ldflags -X`로 넣는다. 없으면 설정 폴더 `google_client.json`을 읽고, 그것도 없으면 구글 백엔드가 안내 오류를 낸다.
 
 - 코드를 고친 뒤에는 묻지 말고 항상 `./dev.sh`(윈도우는 `scripts/dev.ps1`)를 실행해 사용자가 바로 확인할 수 있게 한다.
-  - 윈도우(`scripts/dev.ps1`): 실행 중인 exe는 덮어쓸 수 없지만 이름은 바꿀 수 있어, 옛 `~/.local/bin/calendar-tui.exe`를 `calendar-tui.exe.<시각>.old`로 옮기고 새 빌드를 같은 자리에 둔다. 떠 있으면 앱이 감지해 같은 창에서 다시 시작한다(아래 "개발용 자동 재시작"). 떠 있지 않으면 이 exe를 가리키는 tuidock 앱(시작 메뉴 TUIDock 폴더 바로가기)으로, 없으면 Windows Terminal 새 창으로 띄운다. 개발 PC에선 tuidock 앱 "calendar-tui"(`%APPDATA%\tuidock\calendar-tui-dc3c01fedd56`, 아이콘 `docs/icon.png`)를 작업 표시줄에 고정해 두었다(2026-10-26 사용자 지시: 이 윈도우에선 항상 최신 로컬 빌드를 바로 본다). 앱·창은 탐색기(바로가기)로 띄운다 — 에이전트 셸에서 바로 띄우면 `NO_COLOR` 등이 물려간다.
+  - 윈도우(`scripts/dev.ps1`): 실행 중인 exe는 덮어쓸 수 없지만 이름은 바꿀 수 있어, 옛 `~/.local/bin/calendar-tui.exe`를 `calendar-tui.exe.<시각>.old`로 옮기고 새 빌드를 같은 자리에 둔다. 떠 있으면 앱이 감지해 같은 창에서 다시 시작한다(아래 "개발용 자동 재시작"). 떠 있지 않으면 이 exe를 가리키는 tuidock 앱(시작 메뉴 TUIDock 폴더 바로가기)으로, 없으면 Windows Terminal 새 창으로 띄운다. 개발 PC에선 tuidock 앱 "calendar-tui"(`%APPDATA%\tuidock\calendar-tui-dev`, 아이콘 `docs/icon.png`)를 작업 표시줄에 고정해 두었다(2026-10-26 사용자 지시: 이 윈도우에선 항상 최신 로컬 빌드를 바로 본다). 앱·창은 탐색기(바로가기)로 띄운다 — 에이전트 셸에서 바로 띄우면 `NO_COLOR` 등이 물려간다.
   - 빌드한 바이너리를 `~/.local/bin/calendar-tui`(설치 스크립트가 까는 자리)로 바꾼다(옆에 쓰고 `mv`로 교체 — 실행 중인 파일을 덮어쓰면 프로세스가 죽을 수 있다).
   - `dev.local.sh`(커밋하지 않음)가 있으면 띄우기는 그것에 맡긴다(설치한 바이너리 경로를 인자로 준다).
   - 없으면 떠 있지 않을 때 Terminal 창을 띄워 실행한다.
