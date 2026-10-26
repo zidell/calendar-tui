@@ -9,8 +9,8 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/mattn/go-runewidth"
 	"github.com/muesli/termenv"
+	"github.com/rivo/uniseg"
 )
 
 // 색은 테마(어두운 배경·밝은 배경)마다 다르다. applyTheme이 정한다. 모달 테두리·선택 막대는 무채색.
@@ -19,9 +19,17 @@ var (
 	titleSt, headerSt, borderSt, plainSt, boldSt      lipgloss.Style
 	sundaySt, satSt, todayLblSt, todayBdSt, helpSt    lipgloss.Style
 	selTextSt, errSt, dimSt, modalSt, faintSt, linkSt lipgloss.Style
-	// 한글 로케일에서도 모호폭 문자를 1칸으로 센다(터미널 기본 표시와 일치)
-	rw = &runewidth.Condition{EastAsianWidth: false}
+	rw                                                widths
 )
+
+// widths는 화면 칸 수 계산. 글자 묶음(grapheme) 단위로 센다: 이모지 표시 선택자가 붙은 "☀️"는 터미널이 2칸으로
+// 그리는데 글자 하나씩 세면(runewidth) 1칸이라 줄이 밀렸다(구글 날씨 캘린더, 2026-10-26).
+// 모호폭 문자는 한글 로케일에서도 1칸(터미널 기본 표시와 일치).
+type widths struct{}
+
+func (widths) StringWidth(s string) int { return ansi.StringWidth(s) }
+
+func (widths) Truncate(s string, w int, tail string) string { return ansi.Truncate(s, w, tail) }
 
 // themeDark는 지금 쓰는 색이 어두운 배경용인지(applyTheme이 정함).
 var themeDark = true
@@ -425,14 +433,13 @@ func (m model) gridView(h int) string {
 func cut(s string, from, to int) string {
 	var b strings.Builder
 	col, n := 0, 0
-	for _, r := range s {
-		if col >= to {
-			break
-		}
-		w := rw.RuneWidth(r)
+	for s != "" && col < to {
+		var g string
+		var w int
+		g, s, w, _ = uniseg.FirstGraphemeClusterInString(s, -1)
 		switch {
 		case col >= from && col+w <= to:
-			b.WriteRune(r)
+			b.WriteString(g)
 			n += w
 		case col+w > from:
 			k := min(col+w, to) - max(col, from)

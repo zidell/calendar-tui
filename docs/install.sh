@@ -44,9 +44,11 @@ MSG
 esac
 cat <<'MSG'
 
-터미널에서 calendar-tui 를 실행하세요. 처음 실행할 때 "터미널이 캘린더에 접근" 권한 창을 허용합니다.
-캘린더 계정은 시스템 설정 → 인터넷 계정에 추가해 둔 구글·iCloud 등을 그대로 씁니다.
+터미널에서 calendar-tui 를 실행하세요. 처음 실행하면 캘린더를 어디서 가져올지 고릅니다:
+  맥에 등록한 계정(시스템 설정 → 인터넷 계정) — "터미널이 캘린더에 접근" 권한 창을 허용합니다.
+  구글 계정에 직접 로그인 — 브라우저가 열립니다.
 
-Run calendar-tui in your terminal. On first launch allow "Terminal wants to access Calendars".
-It uses the Google/iCloud accounts in System Settings → Internet Accounts.
+Run calendar-tui in your terminal. On first launch choose where calendars come from:
+  Accounts on this Mac (System Settings → Internet Accounts) — allow "Terminal wants to access Calendars".
+  Sign in to Google directly — your browser opens.
 MSG

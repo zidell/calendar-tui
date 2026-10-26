@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-// 키 입력 디버그 로그. ~/Library/Logs/calendar-tui/keys.log(맥 기준)에 쌓고 24시간 지난 줄은 켤 때 지운다.
+// 키 입력 디버그 로그. keyLogPath(맥 ~/Library/Logs/calendar-tui/keys.log)에 쌓고 24시간 지난 줄은 켤 때 지운다.
 // 입력한 글자(일정 제목 등)까지 남으므로 기본은 꺼 둔다. config.toml [debug] key_log = true로 켠다.
 var keyLog *os.File
 
@@ -28,16 +29,23 @@ func setKeyLog(on bool) {
 	}
 }
 
-func openKeyLog() {
-	home, err := os.UserHomeDir()
+// keyLogPath는 키 로그 파일. 맥 ~/Library/Logs/calendar-tui, 윈도우 %LOCALAPPDATA%\calendar-tui, 리눅스 ~/.cache/calendar-tui.
+func keyLogPath() string {
+	dir, err := os.UserCacheDir()
+	if home, herr := os.UserHomeDir(); runtime.GOOS == "darwin" && herr == nil {
+		dir, err = filepath.Join(home, "Library", "Logs"), nil
+	}
 	if err != nil {
+		return ""
+	}
+	return filepath.Join(dir, "calendar-tui", "keys.log")
+}
+
+func openKeyLog() {
+	path := keyLogPath()
+	if path == "" || os.MkdirAll(filepath.Dir(path), 0o755) != nil {
 		return
 	}
-	dir := filepath.Join(home, "Library", "Logs", "calendar-tui")
-	if os.MkdirAll(dir, 0o755) != nil {
-		return
-	}
-	path := filepath.Join(dir, "keys.log")
 	pruneKeyLog(path, time.Now().Add(-24*time.Hour))
 	keyLog, _ = os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
 }

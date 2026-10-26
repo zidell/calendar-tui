@@ -73,6 +73,9 @@ func (c *settings) save() {
 
 // tomlConfig는 config.toml의 모양. 표시 여부 값 true = 보임, false = 숨김.
 type tomlConfig struct {
+	Backend struct {
+		Type string `toml:"type"`
+	} `toml:"backend"`
 	Display struct {
 		Language   string `toml:"language"`
 		Theme      string `toml:"theme"`
@@ -91,6 +94,7 @@ const defaultFocusWidth = 30
 
 // userConfig는 config.toml에서 읽은 사용자 설정.
 type userConfig struct {
+	Backend                                string // 일정 저장소: auto · eventkit · google
 	Language, Theme, WeekStart, TimeFormat string
 	FocusWidth                             int  // 좁을 때 커서 열 최소 폭(영문 글자 수). 0 = 넓히지 않음
 	KeyLog                                 bool // 키 입력 로그(진단용)
@@ -119,7 +123,12 @@ func parseConfig(path string) (userConfig, error) {
 			keys[i] = k.String()
 		}
 		return u, fmt.Errorf("%s: %s (%s)", configName, L("모르는 항목 ", "unknown key ")+strings.Join(keys, ", "),
-			L("허용: [display]·[debug]·[accounts]·[calendars]", "allowed: [display], [debug], [accounts], [calendars]"))
+			L("허용: [backend]·[display]·[debug]·[accounts]·[calendars]", "allowed: [backend], [display], [debug], [accounts], [calendars]"))
+	}
+	switch u.Backend = or(t.Backend.Type, "auto"); u.Backend {
+	case "auto", "eventkit", "google":
+	default:
+		return u, fmt.Errorf("%s: backend.type = %q (%s auto / eventkit / google)", configName, u.Backend, L("허용값", "allowed"))
 	}
 	pick := func(key, v string) (string, error) {
 		ch := displayChoices[key]
@@ -234,7 +243,18 @@ func (c *settings) renderConfig(cals []calendar) []byte {
 # 앱의 설정 화면(s)에서 [저장]하거나 앱이 시작할 때 캘린더 목록이 바뀌었으면 앱이 이 파일을 다시 쓴다.
 #   이 안내 주석과 이름 주석은 다시 만들어지지만, 직접 단 주석은 사라진다.
 # 마지막 보기·마지막으로 쓴 캘린더는 앱이 저절로 기억하는 값이라 같은 폴더 state.json에 있다.
-# 자격 증명은 없다. 캘린더 계정은 macOS 시스템 설정 → 인터넷 계정이 관리한다.
+# 이 파일엔 자격 증명이 없다. 구글 로그인 토큰은 OS 자격 증명 저장소(맥 키체인·윈도우 자격 증명 관리자)에 있다.
+
+# ── 일정 저장소 ──
+[backend]
+# 어디의 일정을 쓸지. "auto" = 맥은 eventkit, 그 밖(윈도우 등)은 google / "eventkit" / "google". 기본값 "auto".
+#   eventkit: 맥 시스템 설정 → 인터넷 계정에 등록한 계정(구글·iCloud 등). 맥에서만.
+#   google:   구글 계정에 직접 로그인(구글 캘린더 API). 처음 실행할 때 브라우저로 로그인한다.
+#             다시 로그인·계정 바꾸기: calendar-tui --login / 로그아웃: calendar-tui --logout
+#             직접 만든 OAuth 클라이언트를 쓰려면 Cloud 콘솔에서 받은 데스크톱 앱 클라이언트 JSON을
+#             이 폴더에 google_client.json 으로 둔다.
+# 바꾼 값은 앱을 다시 실행하면 적용된다.
+type = %q
 
 # ── 표시 ──
 # 앱의 설정 화면(s → 표시)에서도 바꿀 수 있다.
@@ -255,15 +275,15 @@ focus_min_width = %d
 
 # ── 진단 ──
 [debug]
-# 키 입력 로그. true면 누른 키·클릭을 ~/Library/Logs/calendar-tui/keys.log에 남긴다(24시간 지난 줄은 지움).
+# 키 입력 로그. true면 누른 키·클릭을 %s에 남긴다(24시간 지난 줄은 지움).
 # 단축키가 안 먹을 때 원인을 보려는 용도. 입력한 글자(일정 제목 등)도 남으므로 기본값 false.
 key_log = %t
 
 # ── 계정 표시 여부 ──
 # 키: 계정 ID(따옴표째 그대로 둔다). 값: true = 보임 / false = 숨김(그 계정의 캘린더를 모두 숨김). 기본값 true.
-# 목록은 앱이 시작할 때 맥에 등록된 계정으로 채운다. 목록에 없는 계정은 보인다.
+# 목록은 앱이 시작할 때 일정 저장소의 계정으로 채운다. 목록에 없는 계정은 보인다.
 [accounts]
-`, c.configPath(), or(c.Language, "auto"), or(c.Theme, "auto"), or(c.WeekStart, "sunday"), or(c.TimeFormat, "24h"), c.FocusWidth, c.KeyLog)
+`, c.configPath(), or(c.Backend, "auto"), or(c.Language, "auto"), or(c.Theme, "auto"), or(c.WeekStart, "sunday"), or(c.TimeFormat, "24h"), c.FocusWidth, keyLogPath(), c.KeyLog)
 	type row struct{ id, name string }
 	var accts, calRows []row
 	seen := map[string]bool{}

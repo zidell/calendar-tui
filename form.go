@@ -217,7 +217,7 @@ func (f *form) toggleAllDay() {
 	f.allDay = !f.allDay
 	if f.alarmSet && !f.alarmOther { // 하루 종일 여부가 바뀌면 알림 선택지가 달라진다: 비슷한 것으로
 		if f.allDay {
-			f.alarm = allDayAlarms[1]
+			f.alarm = -15 * 60 // 전날 오전 9시(모든 백엔드의 선택지에 있음)
 		} else {
 			f.alarm = -10
 		}
@@ -267,7 +267,7 @@ func parseDate(s string) (time.Time, error) {
 }
 
 func (f *form) toEvent() (event, error) {
-	e := event{id: f.orig.id, occ: f.orig.occ, title: f.value(fTitle), allDay: f.allDay, repeat: f.repeat,
+	e := event{id: f.orig.id, occ: f.orig.occ, ref: f.orig.ref, title: f.value(fTitle), allDay: f.allDay, repeat: f.repeat,
 		calID: f.calID, location: f.value(fLocation), memo: f.value(fMemo), url: f.value(fURL),
 		alarm: f.alarm, alarmSet: f.alarmSet, alarmOther: f.alarmOther}
 	if e.url != "" && !strings.Contains(e.url, "://") {

@@ -2,39 +2,72 @@
 
 [한국어](README.md) · [English](README.en.md)
 
-터미널에서 도는 가벼운 월간 캘린더. macOS에 등록된 구글·iCloud 캘린더를 그대로 읽고 쓴다.
+터미널에서 도는 가벼운 월간 캘린더. 맥에선 macOS에 등록된 구글·iCloud 캘린더를 그대로 읽고 쓰거나 구글에 직접 로그인하고, 윈도우에선 구글 캘린더에 직접 로그인해 읽고 쓴다.
 Go + [Bubble Tea](https://github.com/charmbracelet/bubbletea) + Lip Gloss로 만들었다.
 
 ![calendar-tui 화면](assets/screenshot.png)
 
 ## 필요한 것
 
-- macOS(캘린더는 EventKit으로 읽는다). Terminal.app 기준으로 다듬었다.
-- 캘린더 계정: 시스템 설정 → 인터넷 계정에 구글·iCloud 등을 추가해 둔다. Apple 캘린더 앱을 쓸 필요는 없다.
+- macOS 14 이상(Terminal.app 기준으로 다듬었다) 또는 Windows 10·11(Windows Terminal 권장).
+- 캘린더를 가져오는 곳(일정 저장소)은 둘 중 하나다. 맥은 처음 실행할 때 고르고, 윈도우는 구글뿐이다.
+  - **맥에 등록한 계정(EventKit)**: 시스템 설정 → 인터넷 계정에 구글·iCloud 등을 추가해 둔다. Apple 캘린더 앱을 쓸 필요는 없다.
+  - **구글 계정에 직접 로그인**: 브라우저로 로그인한다. 맥·윈도우 같은 방식.
 
 ## 설치
+
+맥:
 
 ```sh
 curl -fsSL https://zidell.github.io/calendar-tui/install.sh | bash
 ```
 
-최신 릴리스(Apple Silicon·Intel) 실행 파일을 `~/.local/bin/calendar-tui`에 설치한다. `~/.local/bin`이 PATH에 없으면 추가하라고 알려 준다. 같은 명령을 다시 실행하면 업데이트된다(설정은 그대로). 소개 페이지: https://zidell.github.io/calendar-tui/
+최신 릴리스(Apple Silicon·Intel) 실행 파일을 `~/.local/bin/calendar-tui`에 설치한다. `~/.local/bin`이 PATH에 없으면 추가하라고 알려 준다.
 
-지우려면 `~/.local/bin/calendar-tui`와 `~/Library/Application Support/calendar-tui`를 지운다.
+윈도우(PowerShell):
 
-소스에서 빌드하려면(Go, Xcode 커맨드라인 도구 필요):
+```powershell
+irm https://zidell.github.io/calendar-tui/install.ps1 | iex
+```
+
+최신 릴리스(x64·ARM64) 실행 파일을 `%LOCALAPPDATA%\Programs\calendar-tui\calendar-tui.exe`에 두고 그 폴더를 사용자 PATH에 넣는다(새 터미널 창부터 적용).
+
+같은 명령을 다시 실행하면 업데이트된다(설정·로그인은 그대로). 소개 페이지: https://zidell.github.io/calendar-tui/
+
+지우려면 구글 로그인을 썼다면 먼저 `calendar-tui --logout`, 그다음 맥은 `~/.local/bin/calendar-tui`와 `~/Library/Application Support/calendar-tui`, 윈도우는 `%LOCALAPPDATA%\Programs\calendar-tui`와 `%APPDATA%\calendar-tui`를 지운다.
+
+소스에서 빌드하려면(Go, 맥은 Xcode 커맨드라인 도구도 필요):
 
 ```sh
 git clone https://github.com/zidell/calendar-tui.git
 cd calendar-tui && go build -o calendar-tui . && mv calendar-tui ~/.local/bin/
 ```
 
+소스 빌드엔 구글 OAuth 클라이언트가 들어 있지 않다. 구글 로그인을 쓰려면 아래 "직접 만든 OAuth 클라이언트"처럼 클라이언트 JSON을 둔다.
+
 ## 실행
 
 - 터미널에서 `calendar-tui`. 화면을 꽉 채워 그리고, `q`로 끝낸다.
+- 맥에서 처음 실행하면 캘린더를 어디서 가져올지 고르는 화면이 뜬다(`↑ ↓`·`Enter`). 고른 값은 `config.toml` `[backend] type`에 남고, 나중에 거기서 바꾼다. 원래 쓰던 설정 파일이 있으면 묻지 않고 맥 계정을 쓴다.
+
+### 맥에 등록한 계정(EventKit)
+
 - 처음 실행할 때 "터미널이 캘린더에 접근" 권한 창이 뜬다(권한은 실행한 터미널 앱 기준). 거부하면 안내를 찍고 끝난다. 나중에 바꾸려면 시스템 설정 → 개인정보 보호 및 보안 → 캘린더.
 - 저장·삭제하면 macOS가 해당 계정(구글 등)으로 동기화한다.
 - 다른 기기·앱에서 바꾼 일정은 macOS가 계정을 동기화해 맥 캘린더 DB가 바뀌는 즉시 화면에 반영된다. 터미널 창으로 돌아올 때와 `r`을 누를 때도 다시 읽고, 혹시 놓쳐도 1시간마다 한 번 다시 읽는다. 구글 서버 → 맥으로 가져오는 주기는 macOS가 정한다.
+
+### 구글 계정에 직접 로그인
+
+- 처음 실행할 때 브라우저가 열려 구글 로그인을 한다(브라우저가 안 열리면 터미널에 찍힌 주소를 연다). 개인이 배포하는 앱이라 "Google에서 확인하지 않은 앱" 화면이 나오면 **고급 → calendar-tui(으)로 이동**을 누르고, 캘린더 권한을 체크한 채 계속한다.
+- 로그인 정보(토큰)는 OS 자격 증명 저장소에 둔다(맥 키체인·윈도우 자격 증명 관리자). 설정 파일엔 없다.
+- 다시 로그인·계정 바꾸기: `calendar-tui --login`. 로그아웃(저장한 로그인을 지우고 구글에 권한 회수 요청): `calendar-tui --logout`.
+- 일정은 구글 캘린더 API와 직접 주고받는다. 한 번 받은 달은 바로 보여 주고 뒤에서 다시 받아 바뀐 게 있으면 고쳐 그린다. 앞뒤 달은 미리 받아 둔다. 터미널 창으로 돌아올 때·`r`·1시간마다 다시 받는다.
+- 구글 알림은 시작 "전"만 되므로 하루 종일 일정의 알림은 "전날 오전 9시"·"1주 전 오전 9시"만 고를 수 있다.
+- 개인정보처리방침: https://zidell.github.io/calendar-tui/privacy.html
+
+#### 직접 만든 OAuth 클라이언트
+
+릴리스 실행 파일엔 기본 OAuth 클라이언트가 들어 있다(구글 심사 전이라 사용자 100명 제한). 자기 클라이언트를 쓰려면 Google Cloud 콘솔에서 Calendar API를 켜고 "데스크톱 앱" OAuth 클라이언트를 만든 뒤, 받은 JSON을 설정 폴더(`calendar-tui --config-path`와 같은 폴더)에 `google_client.json`으로 둔다. 그다음 `calendar-tui --login`.
 
 ## 화면
 
@@ -113,15 +146,15 @@ tuidock 앱에서 실행하면 `Cmd+A`도 `a`와 같이 빠른 추가를 연다.
 
 - **캘린더 선택**: 계정(구글·iCloud …)마다 그 아래 캘린더를 켜고 끈다. 계정을 끄면 그 계정의 캘린더가 모두 숨는다. 새로 생긴 계정·캘린더는 기본으로 보인다.
 - **표시**: 언어(자동·한국어·English), 테마(자동·어두운 배경·밝은 배경), 주 시작(일요일·월요일), 시각 표기(24시간·12시간), 좁을 때 고른 요일 최소 폭(영문 기준 글자 수, 0이면 넓히지 않음).
-- 설정 파일: `~/Library/Application Support/calendar-tui/config.toml`(경로 확인: `calendar-tui --config-path`). `[display]`에 표시 설정, `[accounts]`·`[calendars]`에 계정·캘린더마다 `"ID" = true/false` 한 줄(줄 끝 주석이 이름). 항목마다 설명 주석이 있다. 직접 고쳐도 되고, 저장하면 실행 중인 앱이 바로 다시 읽는다. 검사: `calendar-tui --check-config`(잘못되면 앱은 이전 값을 쓰고 화면 맨 아래에 오류).
+- 설정 파일: 맥 `~/Library/Application Support/calendar-tui/config.toml`, 윈도우 `%APPDATA%\calendar-tui\config.toml`(경로 확인: `calendar-tui --config-path`). `[backend]`에 일정 저장소(`auto`·`eventkit`·`google`, 바꾸면 다시 실행), `[display]`에 표시 설정, `[accounts]`·`[calendars]`에 계정·캘린더마다 `"ID" = true/false` 한 줄(줄 끝 주석이 이름). 항목마다 설명 주석이 있다. 직접 고쳐도 되고, 저장하면 실행 중인 앱이 바로 다시 읽는다(윈도우는 창으로 돌아올 때). 검사: `calendar-tui --check-config`(잘못되면 앱은 이전 값을 쓰고 화면 맨 아래에 오류).
 - 마지막 보기·마지막으로 쓴 캘린더는 앱이 저절로 기억하는 값이라 같은 폴더 `state.json`에 따로 둔다. 예전 `settings.json`은 처음 실행 때 옮기고 `.bak`으로 남긴다.
 - AI 에이전트가 설정을 찾아 고칠 수 있게 [Agent Configuration Accessibility](https://github.com/zidell/agent-configuration-accessibility) 컨벤션을 따른다: `calendar-tui --help`, 항목마다 설명 주석.
 
 ## 팁
 
-- 글자 크기: 터미널의 `Cmd + +/-`나 창 크기를 바꾸면 달력이 다시 맞춰진다.
+- 글자 크기: 터미널의 `Cmd + +/-`(윈도우 `Ctrl + +/-`)나 창 크기를 바꾸면 달력이 다시 맞춰진다.
 - 줄 간격: 앱에서는 못 바꾼다. Terminal.app 설정 → 프로필 → 텍스트 → "줄 간격".
-- 키 입력 로그: `config.toml`에 `[debug] key_log = true`로 켜면 `~/Library/Logs/calendar-tui/keys.log`에 남는다(최근 24시간만 보관). 단축키가 안 먹을 때 무엇이 들어오는지, 변경 알림(`store changed`)이 오는지 확인용. 입력한 글자도 남으므로 기본은 꺼져 있다.
+- 키 입력 로그: `config.toml`에 `[debug] key_log = true`로 켜면 맥 `~/Library/Logs/calendar-tui/keys.log`, 윈도우 `%LOCALAPPDATA%\calendar-tui\keys.log`에 남는다(최근 24시간만 보관). 단축키가 안 먹을 때 무엇이 들어오는지, 변경 알림(`store changed`)이 오는지 확인용. 입력한 글자도 남으므로 기본은 꺼져 있다.
 
 ## 라이선스
 

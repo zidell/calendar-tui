@@ -41,6 +41,7 @@ type calendar struct {
 type event struct {
 	id         string    // 백엔드 식별자. 반복 일정은 모든 회차가 같다
 	occ        time.Time // 이 회차의 원래 시작. 반복 회차를 찾는 키
+	ref        string    // 백엔드가 이 회차를 다시 찾는 값(구글: "원래 캘린더 ID\n회차 ID"). EventKit·목업은 비움
 	title      string
 	allDay     bool
 	start      time.Time

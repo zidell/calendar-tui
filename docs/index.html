@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>calendar-tui — macOS 터미널 캘린더 · Terminal calendar for macOS</title>
-<meta name="description" content="macOS 캘린더 계정을 그대로 쓰는 가벼운 터미널 캘린더 · A lightweight terminal calendar for your macOS calendar accounts">
+<title>calendar-tui — 터미널 캘린더(맥·윈도우) · Terminal calendar for macOS &amp; Windows</title>
+<meta name="description" content="맥 캘린더 계정·구글 캘린더를 쓰는 가벼운 터미널 캘린더(맥·윈도우) · A lightweight terminal calendar for your Mac calendar accounts or Google Calendar (macOS &amp; Windows)">
 <link rel="canonical" href="https://zidell.github.io/calendar-tui/">
 <link rel="icon" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="calendar-tui">
 <meta property="og:url" content="https://zidell.github.io/calendar-tui/">
-<meta property="og:title" content="calendar-tui — Terminal calendar for macOS">
-<meta property="og:description" content="A lightweight terminal calendar for your macOS calendar accounts">
+<meta property="og:title" content="calendar-tui — Terminal calendar for macOS &amp; Windows">
+<meta property="og:description" content="A lightweight terminal calendar for your Mac calendar accounts or Google Calendar">
 <meta property="og:image" content="https://zidell.github.io/calendar-tui/screenshot.png">
 <meta property="og:image:width" content="1600">
 <meta property="og:image:height" content="1094">
@@ -26,14 +26,14 @@
   "@type": "SoftwareApplication",
   "name": "calendar-tui",
   "alternateName": "Calendar TUI",
-  "description": "A lightweight terminal calendar for your macOS calendar accounts (iCloud, Google) via EventKit.",
+  "description": "A lightweight terminal calendar for your macOS calendar accounts (iCloud, Google) via EventKit, or Google Calendar directly on macOS and Windows.",
   "url": "https://zidell.github.io/calendar-tui/",
   "downloadUrl": "https://github.com/zidell/calendar-tui/releases/latest",
   "installUrl": "https://zidell.github.io/calendar-tui/install.sh",
   "image": "https://zidell.github.io/calendar-tui/icon.png",
   "screenshot": "https://zidell.github.io/calendar-tui/screenshot.png",
   "applicationCategory": "ProductivityApplication",
-  "operatingSystem": "macOS 14+",
+  "operatingSystem": "macOS 14+, Windows 10+",
   "inLanguage": ["ko", "en"],
   "license": "https://www.gnu.org/licenses/gpl-3.0.html",
   "isAccessibleForFree": true,
@@ -58,17 +58,28 @@
 </p>
 
 <p>
-<span data-l="ko">맥북 기준, 시스템에 설정된 iCloud/Google 캘린더 정보 기반으로 TUI상에서 간단하게 사용할 목적으로 개발했다.</span>
-<span data-l="en" hidden>For Mac. Built for simple use in a TUI, based on the iCloud/Google calendars set up in your system.</span>
+<span data-l="ko">TUI상에서 간단하게 쓸 목적으로 개발했다. 맥에선 시스템에 설정된 iCloud/Google 캘린더를 그대로 쓰거나 구글에 직접 로그인하고, 윈도우에선 구글 캘린더에 직접 로그인한다.</span>
+<span data-l="en" hidden>Built for simple use in a TUI. On a Mac it uses the iCloud/Google calendars set up in your system or signs in to Google directly; on Windows it signs in to Google Calendar.</span>
 </p>
 
 <h2><span data-l="ko">설치</span><span data-l="en" hidden>Install</span></h2>
+
+<p><b>macOS</b></p>
 
 <pre style="background: #f0f0f0; padding: 12px; overflow-x: auto">curl -fsSL https://zidell.github.io/calendar-tui/install.sh | bash</pre>
 
 <p>
 <span data-l="ko">macOS 14 이상 · Apple Silicon·Intel · 설치 후 터미널에서 <code>calendar-tui</code>를 실행한다. 같은 명령으로 업데이트한다.</span>
 <span data-l="en" hidden>macOS 14+ · Apple Silicon &amp; Intel · Then run <code>calendar-tui</code> in your terminal. Run the same command to update.</span>
+</p>
+
+<p><b>Windows</b> (PowerShell)</p>
+
+<pre style="background: #f0f0f0; padding: 12px; overflow-x: auto">irm https://zidell.github.io/calendar-tui/install.ps1 | iex</pre>
+
+<p>
+<span data-l="ko">Windows 10·11 · x64·ARM64 · 새 터미널(Windows Terminal 권장)에서 <code>calendar-tui</code>를 실행한다. 같은 명령으로 업데이트한다.</span>
+<span data-l="en" hidden>Windows 10/11 · x64 &amp; ARM64 · Then run <code>calendar-tui</code> in a new terminal (Windows Terminal recommended). Run the same command to update.</span>
 </p>
 
 <p><img src="screenshot.png" alt="calendar-tui month view" width="700" height="479"></p>
@@ -87,18 +98,20 @@
 <h2><span data-l="ko">처음 실행할 때</span><span data-l="en" hidden>First launch</span></h2>
 
 <ul>
-<li><span data-l="ko">캘린더 계정은 시스템 설정 → 인터넷 계정에 추가해 둔 구글·iCloud 등을 그대로 쓴다.</span><span data-l="en" hidden>It uses the Google, iCloud and other accounts in System Settings → Internet Accounts.</span></li>
-<li><span data-l="ko">“터미널이 캘린더에 접근” 권한 창을 허용한다.</span><span data-l="en" hidden>Allow the “Terminal wants to access Calendars” prompt.</span></li>
-<li><span data-l="ko">일정은 네트워크로 보내지 않는다. macOS 캘린더 데이터베이스를 직접 읽고, 동기화는 macOS가 한다.</span><span data-l="en" hidden>Nothing is sent over the network. It reads the macOS calendar database directly; macOS does the syncing.</span></li>
-<li><span data-l="ko">지우려면 <code>~/.local/bin/calendar-tui</code>와 <code>~/Library/Application Support/calendar-tui</code>를 지운다.</span><span data-l="en" hidden>To uninstall, delete <code>~/.local/bin/calendar-tui</code> and <code>~/Library/Application Support/calendar-tui</code>.</span></li>
+<li><span data-l="ko">맥에선 처음 실행할 때 캘린더를 어디서 가져올지 고른다: <b>맥에 등록한 계정</b>(시스템 설정 → 인터넷 계정의 구글·iCloud 등) 또는 <b>구글 계정에 직접 로그인</b>. 윈도우는 구글 로그인으로 바로 시작한다.</span><span data-l="en" hidden>On a Mac, the first launch asks where calendars come from: <b>accounts on this Mac</b> (Google, iCloud, etc. in System Settings → Internet Accounts) or <b>signing in to Google directly</b>. Windows goes straight to Google sign-in.</span></li>
+<li><span data-l="ko">맥 계정: “터미널이 캘린더에 접근” 권한 창을 허용한다. 일정은 macOS 캘린더 데이터베이스를 직접 읽고, 동기화는 macOS가 한다.</span><span data-l="en" hidden>Mac accounts: allow the “Terminal wants to access Calendars” prompt. Events come from the macOS calendar database; macOS does the syncing.</span></li>
+<li><span data-l="ko">구글 로그인: 브라우저가 열린다. 개인 프로젝트라 “Google에서 확인하지 않은 앱” 화면이 나오면 [고급] → [calendar-tui(으)로 이동]을 누른다. 앱은 구글 캘린더 API와만 통신하고 다른 곳으로 보내지 않는다(<a href="privacy.html">개인정보처리방침</a>).</span><span data-l="en" hidden>Google sign-in: your browser opens. If you see “Google hasn't verified this app”, click Advanced → Go to calendar-tui. The app talks only to the Google Calendar API (<a href="privacy.html">privacy policy</a>).</span></li>
+<li><span data-l="ko">지우려면 맥은 <code>~/.local/bin/calendar-tui</code>와 <code>~/Library/Application Support/calendar-tui</code>, 윈도우는 <code>%LOCALAPPDATA%\Programs\calendar-tui</code>와 <code>%APPDATA%\calendar-tui</code>를 지운다. 구글 로그인은 먼저 <code>calendar-tui --logout</code>.</span><span data-l="en" hidden>To uninstall, delete <code>~/.local/bin/calendar-tui</code> and <code>~/Library/Application Support/calendar-tui</code> on a Mac, or <code>%LOCALAPPDATA%\Programs\calendar-tui</code> and <code>%APPDATA%\calendar-tui</code> on Windows. Run <code>calendar-tui --logout</code> first if you signed in to Google.</span></li>
 </ul>
 
-<p><span data-l="ko">소스에서 빌드하려면(Go, Xcode 커맨드라인 도구 필요):</span><span data-l="en" hidden>To build from source (needs Go and the Xcode Command Line Tools):</span></p>
+<p><span data-l="ko">소스에서 빌드하려면(Go, 맥은 Xcode 커맨드라인 도구도 필요):</span><span data-l="en" hidden>To build from source (needs Go, plus the Xcode Command Line Tools on a Mac):</span></p>
 
 <pre>git clone https://github.com/zidell/calendar-tui.git
 cd calendar-tui &amp;&amp; go build -o calendar-tui . &amp;&amp; mv calendar-tui ~/.local/bin/</pre>
 
-<address>calendar-tui · GPL-3.0 License · <a href="https://github.com/zidell/calendar-tui">github.com/zidell/calendar-tui</a></address>
+<p><span data-l="ko">소스 빌드엔 구글 OAuth 클라이언트가 들어 있지 않다. 구글 로그인을 쓰려면 Cloud 콘솔에서 만든 데스크톱 앱 클라이언트 JSON을 설정 폴더에 <code>google_client.json</code>으로 둔다.</span><span data-l="en" hidden>Source builds have no Google OAuth client. To use Google sign-in, put a desktop-app client JSON from Cloud Console in the settings folder as <code>google_client.json</code>.</span></p>
+
+<address>calendar-tui · GPL-3.0 License · <a href="privacy.html"><span data-l="ko">개인정보처리방침</span><span data-l="en" hidden>Privacy</span></a> · <a href="https://github.com/zidell/calendar-tui">github.com/zidell/calendar-tui</a></address>
 
 <script>
 (function () {

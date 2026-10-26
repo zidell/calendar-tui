@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>calendar-tui — 개인정보처리방침 · Privacy Policy</title>
+<link rel="canonical" href="https://zidell.github.io/calendar-tui/privacy.html">
+<link rel="icon" href="icon.png">
+</head>
+<body style="max-width: 700px; margin: 0 auto">
+
+<p>
+<a href="./">calendar-tui</a> |
+<a href="https://github.com/zidell/calendar-tui">GitHub</a> |
+<a href="#" id="lang">English</a>
+</p>
+
+<h1><span data-l="ko">개인정보처리방침</span><span data-l="en" hidden>Privacy Policy</span></h1>
+
+<p><span data-l="ko">최종 수정: 2026-10-26</span><span data-l="en" hidden>Last updated: 2026-10-26</span></p>
+
+<div data-l="ko">
+<p>calendar-tui는 사용자의 컴퓨터에서만 실행되는 오픈소스 터미널 캘린더다. 운영하는 서버가 없고, 사용자의 데이터를 개발자에게 보내지 않는다.</p>
+
+<h2>구글 계정으로 로그인할 때</h2>
+<ul>
+<li><b>요청하는 권한</b>: 구글 캘린더(<code>https://www.googleapis.com/auth/calendar</code>). 캘린더 목록과 일정을 보여 주고, 사용자가 앱에서 일정을 추가·편집·삭제할 때 쓴다.</li>
+<li><b>데이터가 가는 곳</b>: 앱은 사용자의 컴퓨터에서 구글 캘린더 API(<code>googleapis.com</code>)와 직접 통신한다. 일정은 실행 중인 앱의 메모리에만 있고, 디스크에 따로 저장하거나 제3자에게 보내지 않는다.</li>
+<li><b>로그인 정보</b>: 구글이 발급한 토큰은 운영체제의 자격 증명 저장소(macOS 키체인, 윈도우 자격 증명 관리자, 리눅스 Secret Service)에 저장한다. 이를 쓸 수 없는 환경에서는 설정 폴더의 파일(본인만 읽기 가능)에 저장한다.</li>
+<li><b>분석·광고·추적</b>: 하지 않는다. 사용 통계도 모으지 않는다.</li>
+<li><b>권한 회수</b>: <code>calendar-tui --logout</code>으로 저장된 로그인을 지우고 구글에 권한 회수를 요청한다. <a href="https://myaccount.google.com/permissions">구글 계정 → 서드 파티 연결</a>에서도 언제든 회수할 수 있다.</li>
+</ul>
+<p>calendar-tui가 구글 API에서 받은 정보를 사용하고 다른 앱으로 전송하는 방식은 <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API 서비스 사용자 데이터 정책</a>(제한적 사용 요구사항 포함)을 따른다.</p>
+
+<h2>macOS 계정(EventKit)을 쓸 때</h2>
+<p>macOS가 동기화해 둔 캘린더 데이터베이스를 직접 읽고 쓴다. 앱이 네트워크로 보내는 것은 없다.</p>
+
+<h2>설정 파일</h2>
+<p>화면 설정·숨긴 캘린더 목록을 설정 폴더(<code>calendar-tui --config-path</code>로 확인)에 둔다. 진단용 키 입력 로그는 기본으로 꺼져 있고, 켜면 사용자의 컴퓨터에만 남는다.</p>
+
+<h2>문의</h2>
+<p><a href="https://github.com/zidell/calendar-tui/issues">GitHub 이슈</a> 또는 zidell@gmail.com</p>
+</div>
+
+<div data-l="en" hidden>
+<p>calendar-tui is an open-source terminal calendar that runs only on your computer. There is no server operated by the developer, and none of your data is sent to the developer.</p>
+
+<h2>When you sign in with Google</h2>
+<ul>
+<li><b>Permission requested</b>: Google Calendar (<code>https://www.googleapis.com/auth/calendar</code>), used to show your calendars and events and to add, edit or delete events when you do so in the app.</li>
+<li><b>Where data goes</b>: the app talks to the Google Calendar API (<code>googleapis.com</code>) directly from your computer. Events are kept only in the running app's memory; they are not stored on disk or sent to any third party.</li>
+<li><b>Sign-in data</b>: the tokens issued by Google are stored in your operating system's credential store (macOS Keychain, Windows Credential Manager, Linux Secret Service), or, where that is unavailable, in a file in the settings folder readable only by you.</li>
+<li><b>Analytics, ads, tracking</b>: none. No usage statistics are collected.</li>
+<li><b>Revoking access</b>: <code>calendar-tui --logout</code> deletes the stored sign-in and asks Google to revoke access. You can also revoke it anytime under <a href="https://myaccount.google.com/permissions">Google Account → Third-party connections</a>.</li>
+</ul>
+<p>calendar-tui's use and transfer of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
+
+<h2>When you use macOS accounts (EventKit)</h2>
+<p>The app reads and writes the calendar database that macOS keeps in sync. The app itself sends nothing over the network.</p>
+
+<h2>Settings files</h2>
+<p>Display settings and the list of hidden calendars are kept in the settings folder (see <code>calendar-tui --config-path</code>). The diagnostic key log is off by default and, when on, stays on your computer.</p>
+
+<h2>Contact</h2>
+<p><a href="https://github.com/zidell/calendar-tui/issues">GitHub issues</a> or zidell@gmail.com</p>
+</div>
+
+<address>calendar-tui · GPL-3.0 License · <a href="https://github.com/zidell/calendar-tui">github.com/zidell/calendar-tui</a></address>
+
+<script>
+(function () {
+  var root = document.documentElement, btn = document.getElementById('lang');
+  function set(l) {
+    root.lang = l;
+    btn.textContent = l === 'ko' ? 'English' : '한국어';
+    var els = document.querySelectorAll('[data-l]');
+    for (var i = 0; i < els.length; i++) els[i].hidden = els[i].getAttribute('data-l') !== l;
+    try { localStorage.setItem('lang', l); } catch (e) {}
+  }
+  var saved = null;
+  try { saved = localStorage.getItem('lang'); } catch (e) {}
+  set(saved || ((navigator.language || '').toLowerCase().indexOf('ko') === 0 ? 'ko' : 'en'));
+  btn.addEventListener('click', function (e) { e.preventDefault(); set(root.lang === 'ko' ? 'en' : 'ko'); });
+})();
+</script>
+</body>
+</html>

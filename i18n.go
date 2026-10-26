@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
@@ -21,17 +20,15 @@ func L(ko, en string) string {
 	return ko
 }
 
-// systemLang은 LC_ALL·LC_MESSAGES·LANG, 비었으면 macOS 언어 설정(AppleLanguages)의 첫 언어로 고른다.
+// systemLang은 LC_ALL·LC_MESSAGES·LANG, 비었으면 OS 언어 설정(맥 AppleLanguages, 윈도우 표시 언어)의 첫 언어로 고른다.
 func systemLang() string {
 	for _, k := range []string{"LC_ALL", "LC_MESSAGES", "LANG"} {
 		if v := os.Getenv(k); v != "" && v != "C" && v != "POSIX" {
 			return pickLang(v)
 		}
 	}
-	if out, err := exec.Command("defaults", "read", "-g", "AppleLanguages").Output(); err == nil {
-		s := strings.Trim(strings.TrimSpace(string(out)), "()\n ")
-		first, _, _ := strings.Cut(s, ",")
-		return pickLang(strings.Trim(strings.TrimSpace(first), `"`))
+	if l := osLang(); l != "" {
+		return pickLang(l)
 	}
 	return "en"
 }

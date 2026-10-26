@@ -2,39 +2,72 @@
 
 [한국어](README.md) · [English](README.en.md)
 
-A lightweight monthly calendar that runs in the terminal. It reads and writes the Google and iCloud calendars already registered on your Mac.
+A lightweight monthly calendar that runs in the terminal. On a Mac it reads and writes the Google and iCloud calendars already registered in macOS, or signs in to Google directly; on Windows it signs in to Google Calendar directly.
 Built with Go + [Bubble Tea](https://github.com/charmbracelet/bubbletea) + Lip Gloss.
 
 ![calendar-tui screenshot](assets/screenshot.png)
 
 ## Requirements
 
-- macOS (calendars are read through EventKit). Tuned for Terminal.app.
-- Calendar accounts: add Google, iCloud, etc. in System Settings → Internet Accounts. You don't need to use the Apple Calendar app.
+- macOS 14+ (tuned for Terminal.app) or Windows 10/11 (Windows Terminal recommended).
+- Where calendars come from (the backend) is one of two. On a Mac you choose on first launch; Windows uses Google.
+  - **Accounts on this Mac (EventKit)**: add Google, iCloud, etc. in System Settings → Internet Accounts. You don't need to use the Apple Calendar app.
+  - **Sign in to Google directly**: sign in with your browser. Same on Mac and Windows.
 
 ## Install
+
+Mac:
 
 ```sh
 curl -fsSL https://zidell.github.io/calendar-tui/install.sh | bash
 ```
 
-Installs the latest release binary (Apple Silicon & Intel) to `~/.local/bin/calendar-tui`, and tells you if `~/.local/bin` isn't on your PATH. Run the same command again to update (your settings are kept). Website: https://zidell.github.io/calendar-tui/
+Installs the latest release binary (Apple Silicon & Intel) to `~/.local/bin/calendar-tui`, and tells you if `~/.local/bin` isn't on your PATH.
 
-To uninstall, delete `~/.local/bin/calendar-tui` and `~/Library/Application Support/calendar-tui`.
+Windows (PowerShell):
 
-To build from source (needs Go and the Xcode Command Line Tools):
+```powershell
+irm https://zidell.github.io/calendar-tui/install.ps1 | iex
+```
+
+Installs the latest release binary (x64 & ARM64) to `%LOCALAPPDATA%\Programs\calendar-tui\calendar-tui.exe` and adds that folder to your user PATH (takes effect in new terminal windows).
+
+Run the same command again to update (settings and sign-in are kept). Website: https://zidell.github.io/calendar-tui/
+
+To uninstall: if you signed in to Google, run `calendar-tui --logout` first; then delete `~/.local/bin/calendar-tui` and `~/Library/Application Support/calendar-tui` on a Mac, or `%LOCALAPPDATA%\Programs\calendar-tui` and `%APPDATA%\calendar-tui` on Windows.
+
+To build from source (needs Go, plus the Xcode Command Line Tools on a Mac):
 
 ```sh
 git clone https://github.com/zidell/calendar-tui.git
 cd calendar-tui && go build -o calendar-tui . && mv calendar-tui ~/.local/bin/
 ```
 
+Source builds don't include a Google OAuth client. To use Google sign-in, add a client JSON as in "Your own OAuth client" below.
+
 ## Run
 
 - Run `calendar-tui` in your terminal. It fills the window; `q` quits.
+- On a Mac, the first launch asks where calendars come from (`↑ ↓`, `Enter`). The choice is stored in `config.toml` `[backend] type`; change it there later. If you already have a settings file, it doesn't ask and keeps using the Mac accounts.
+
+### Accounts on this Mac (EventKit)
+
 - On first launch macOS asks to let your terminal access Calendars (the permission belongs to the terminal app you run it from). If access is denied, the app prints instructions and exits. To change it later: System Settings → Privacy & Security → Calendars.
 - Saves and deletes are synced to the account (Google, etc.) by macOS.
 - Changes made on other devices or apps appear as soon as macOS syncs them into the local calendar database. The app also re-reads when you return to the terminal window and when you press `r`, and once an hour as a fallback. How often macOS fetches from Google is up to macOS.
+
+### Sign in to Google directly
+
+- On first launch your browser opens for Google sign-in (if it doesn't, open the URL printed in the terminal). It's an individually published app, so if you see "Google hasn't verified this app", click **Advanced → Go to calendar-tui** and continue with the calendar permission checked.
+- The sign-in token is stored in your OS credential store (macOS Keychain, Windows Credential Manager), not in the settings file.
+- Sign in again or switch accounts: `calendar-tui --login`. Sign out (deletes the stored sign-in and asks Google to revoke access): `calendar-tui --logout`.
+- Events go directly to and from the Google Calendar API. A month you've already loaded shows instantly and is re-fetched in the background; if something changed, the screen updates. Neighboring months are prefetched. It re-fetches when you return to the terminal window, on `r`, and hourly.
+- Google reminders can only fire before the start, so all-day events offer only "Day before, 9am" and "1 week before, 9am".
+- Privacy policy: https://zidell.github.io/calendar-tui/privacy.html
+
+#### Your own OAuth client
+
+Release binaries include a default OAuth client (not yet verified by Google, so limited to 100 users). To use your own, enable the Calendar API in Google Cloud Console, create a "Desktop app" OAuth client, save the downloaded JSON as `google_client.json` in the settings folder (the folder of `calendar-tui --config-path`), then run `calendar-tui --login`.
 
 ## Screen
 
@@ -113,15 +146,15 @@ In a tuidock app, `Cmd+A` also opens Quick Add, just like `a`. Use `a` in a regu
 
 - **Calendars**: turn calendars on and off, grouped by account (Google, iCloud, ...). Turning off an account hides all its calendars. New accounts and calendars are shown by default.
 - **Display**: language (auto, 한국어, English), theme (auto, dark, light), week start (Sunday, Monday), time format (24-hour, 12-hour), and the minimum width of the selected day column when narrow (in characters; 0 disables widening).
-- Settings file: `~/Library/Application Support/calendar-tui/config.toml` (print the path with `calendar-tui --config-path`). `[display]` holds display settings, `[debug]` diagnostics, and `[accounts]` / `[calendars]` have one `"ID" = true/false` line per account and calendar (the comment at the end of the line is its name). Every item has an explanatory comment. You can edit it directly; the running app re-reads it as soon as you save. Check it with `calendar-tui --check-config` (if it's invalid, the app keeps the previous values and shows the error at the bottom of the screen).
+- Settings file: `~/Library/Application Support/calendar-tui/config.toml` on a Mac, `%APPDATA%\calendar-tui\config.toml` on Windows (print the path with `calendar-tui --config-path`). `[backend]` picks where calendars come from (`auto`, `eventkit`, `google`; restart to apply), `[display]` holds display settings, `[debug]` diagnostics, and `[accounts]` / `[calendars]` have one `"ID" = true/false` line per account and calendar (the comment at the end of the line is its name). Every item has an explanatory comment. You can edit it directly; the running app re-reads it as soon as you save (on Windows, when you return to the window). Check it with `calendar-tui --check-config` (if it's invalid, the app keeps the previous values and shows the error at the bottom of the screen).
 - The last view and last-used calendar are remembered automatically and kept separately in `state.json` in the same folder. An old `settings.json` is migrated on first run and kept as `.bak`.
 - Follows the [Agent Configuration Accessibility](https://github.com/zidell/agent-configuration-accessibility) convention so AI agents can find and change settings: `calendar-tui --help` and a comment on every item.
 
 ## Tips
 
-- Text size: change it with the terminal's `Cmd + +/-` or by resizing the window; the calendar re-fits.
+- Text size: change it with the terminal's `Cmd + +/-` (`Ctrl + +/-` on Windows) or by resizing the window; the calendar re-fits.
 - Line spacing can't be changed by the app. Use Terminal.app Settings → Profiles → Text → "Line spacing".
-- Key log: set `[debug] key_log = true` in `config.toml` to record keys and clicks in `~/Library/Logs/calendar-tui/keys.log` (only the last 24 hours are kept). Useful to see what reaches the app when a shortcut doesn't work, or whether change notifications (`store changed`) arrive. It records typed text too, so it is off by default.
+- Key log: set `[debug] key_log = true` in `config.toml` to record keys and clicks in `~/Library/Logs/calendar-tui/keys.log` on a Mac or `%LOCALAPPDATA%\calendar-tui\keys.log` on Windows (only the last 24 hours are kept). Useful to see what reaches the app when a shortcut doesn't work, or whether change notifications (`store changed`) arrive. It records typed text too, so it is off by default.
 
 ## License
 

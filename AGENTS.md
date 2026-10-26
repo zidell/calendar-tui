@@ -11,13 +11,16 @@ README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·�
 - 빌드와 실행(개발):
   ```sh
   go build -o calendar-tui .
-  ./calendar-tui          # 맥 캘린더 계정(EventKit). 권한은 실행한 터미널 앱 기준
+  ./calendar-tui          # config.toml [backend]: 맥 기본 EventKit(권한은 실행한 터미널 앱 기준), 그 밖은 구글
   ./calendar-tui -mock    # 메모리 목업 일정(설정 파일은 읽기만). 쓰기 경로 검증은 이걸로
-  go test .           # 빠른 추가·시각 해석 테스트
+  ./calendar-tui --login  # 구글 로그인만 하고 끝냄(--logout 로그아웃)
+  go test .           # 빠른 추가·시각 해석·구글 변환·쓰기 요청(가짜 서버) 테스트
   ```
-- 필요한 것: Go, Xcode 커맨드라인 도구(cgo로 EventKit을 부른다). 다른 OS에선 빌드 태그로 목업만 붙는다.
+- 필요한 것: Go. 맥은 Xcode 커맨드라인 도구도(cgo로 EventKit을 부른다). 윈도우·리눅스는 cgo 없이 빌드되고 EventKit 자리엔 안내 오류만 붙는다(`backend_other.go`).
+- 구글 OAuth 기본 클라이언트는 저장소에 없다. 개발 빌드에 넣으려면 Cloud 콘솔에서 받은 클라이언트 JSON을 `~/.calendar-tui-google-client.json`(커밋 금지)에 두면 `dev.sh`·`scripts/dev.ps1`이 `-ldflags -X`로 넣는다. 없으면 설정 폴더 `google_client.json`을 읽고, 그것도 없으면 구글 백엔드가 안내 오류를 낸다.
 
-- 코드를 고친 뒤에는 묻지 말고 항상 `./dev.sh`를 실행해 사용자가 바로 확인할 수 있게 한다.
+- 코드를 고친 뒤에는 묻지 말고 항상 `./dev.sh`(윈도우는 `scripts/dev.ps1`)를 실행해 사용자가 바로 확인할 수 있게 한다.
+  - 윈도우(`scripts/dev.ps1`): 실행 중인 exe를 덮어쓸 수 없고 자동 재시작도 없어, 떠 있던 calendar-tui를 끝내고 `~/.local/bin/calendar-tui.exe`로 바꾼 뒤 Windows Terminal 새 창으로 띄운다.
   - 빌드한 바이너리를 `~/.local/bin/calendar-tui`(설치 스크립트가 까는 자리)로 바꾼다(옆에 쓰고 `mv`로 교체 — 실행 중인 파일을 덮어쓰면 프로세스가 죽을 수 있다).
   - `dev.local.sh`(커밋하지 않음)가 있으면 띄우기는 그것에 맡긴다(설치한 바이너리 경로를 인자로 준다).
   - 없으면 떠 있지 않을 때 Terminal 창을 띄워 실행한다.
@@ -25,7 +28,7 @@ README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·�
 - 윈도우 교차 빌드도 깨지지 않게 유지한다: `GOOS=windows GOARCH=amd64 go vet ./... && go build -o calendar.exe .`
 - EventKit 권한·입력 소스처럼 Terminal.app 기준으로 확인해야 하는 실행(테스트 바이너리, 프로브)은 `scripts/term-run.sh '명령'`으로 돌린다. 끝나면 그 창을 닫아 종료된 터미널 창이 남지 않는다. `osascript ... do script`로 창을 직접 띄우지 않는다.
 - 화면 확인은 Terminal 창 스크린샷으로 한다: `screencapture -x -o -l <창 id>`(창 id는 `osascript -e 'tell application "Terminal" to get id of (first window whose name contains "— calendar-tui —")'`). tmux는 DEC 2배 크기 줄을 그리지 못하고, 입력기를 거치지 않으므로 한글 입력 확인에도 못 쓴다.
-- 사용자의 실제 구글 캘린더에 테스트 일정을 만들거나 지우지 않는다. 쓰기 경로는 `-mock`으로 검증한다.
+- 사용자의 실제 구글 캘린더에 테스트 일정을 만들거나 지우지 않는다. 쓰기 경로는 `-mock`으로, 구글 쓰기 요청 모양은 `google_test.go`의 가짜 서버로 검증한다. 실제 계정 읽기 확인은 해도 된다.
 - 성능 문제는 짐작하지 말고 잰다(키 처리·View 시간, 키당 출력 바이트). 2026-10-04 측정: Update 0.03ms, View 0.6ms, 달 바뀔 때 EventKit 조회 9ms, 키당 출력 약 3KB, 대기 중 출력 0.
 
 ## 구조
@@ -42,20 +45,24 @@ README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·�
 | `modal.go` | 모달 버튼 그룹 키 규칙(Tab·Shift+Tab·←→·Enter·↑) 한 곳 처리 |
 | `form.go` | 일정 추가·편집 폼 |
 | `events.go` | 일정·캘린더 타입, `backend` 인터페이스, 달 단위 캐시(`store`), 휴일 판정 |
-| `eventkit_darwin.go` | EventKit 구현체(cgo, Objective-C) |
+| `eventkit_darwin.go` | EventKit 구현체(cgo, Objective-C). `backend_other.go`는 맥 밖의 자리 표시 |
+| `google.go` | 구글 캘린더 API v3 구현체(net/http + JSON 직접, 뒤에서 다시 받는 캐시, 반복 규칙 RRULE) |
+| `googleauth.go` | 구글 로그인(루프백 + PKCE), OAuth 클라이언트 고르기, 토큰 보관(OS 자격 증명 저장소), `--login`·`--logout` |
+| `firstrun.go` | 맥 첫 실행 때 일정 저장소 고르기 화면 |
+| `lang_*.go` | OS 언어 설정 읽기(맥 AppleLanguages, 윈도우 표시 언어) |
 | `mock.go` | 메모리 목업 구현체(반복·예외·분할 포함) |
 | `settings.go` | 설정 메뉴, 캘린더 선택 |
 | `config.go` | 설정 파일: `config.toml`(사용자 설정)·`state.json`(앱이 기억하는 값), 예전 `settings.json` 옮기기 |
 | `reload_*.go` | 새 빌드 감지 → 제자리 재시작 |
 | `termtheme.go` | 터미널 다크·라이트 알림(모드 2031) 받기, 실행 중 배경색 다시 묻기(OSC 11) |
 | `keylog.go` | 키 입력 로그(기본 꺼짐, `config.toml` `[debug] key_log`. 입력한 글자도 남아서 공개 전 기본값을 끔) |
-| `dev.sh`, `scripts/term-run.sh` | 개발용 실행 |
+| `dev.sh`, `scripts/dev.ps1`, `scripts/term-run.sh` | 개발용 실행(맥·윈도우) |
 | `scripts/release.sh` | 부·주 버전 릴리스만: `scripts/release.sh v0.3.0` → 확인 후 태그만 푸시. 패치 릴리스는 main 푸시로 자동 |
-| `.github/workflows/release.yml` | main 푸시(문서만 바뀐 건 제외) → 마지막 태그 패치 +1로 자동 릴리스, `v*` 태그 푸시 → 그 버전. macOS 러너에서 테스트·유니버설 빌드 → Releases에 `calendar-tui-macos.tar.gz`(실행 파일 하나). 수동 실행은 빌드만(아티팩트) |
-| `docs/` | GitHub Pages(https://zidell.github.io/calendar-tui/): 소개 페이지 `index.html`, 설치 스크립트 `install.sh`(`curl … \| bash`, `~/.local/bin/calendar-tui`에 설치) |
+| `.github/workflows/release.yml` | main 푸시(문서만 바뀐 건 제외) → 마지막 태그 패치 +1로 자동 릴리스, `v*` 태그 푸시 → 그 버전. macOS 러너에서 테스트·맥 유니버설·윈도우(x64·ARM64, 교차 빌드) → Releases에 `calendar-tui-macos.tar.gz`·`calendar-tui-windows-{amd64,arm64}.zip`. 구글 기본 클라이언트는 저장소 시크릿 `GOOGLE_CLIENT_ID`·`GOOGLE_CLIENT_SECRET`. 수동 실행은 빌드만(아티팩트) |
+| `docs/` | GitHub Pages(https://zidell.github.io/calendar-tui/): 소개 페이지 `index.html`, 개인정보처리방침 `privacy.html`(구글 OAuth 동의 화면에 등록한 주소라 옮기지 않는다), 설치 스크립트 `install.sh`(맥, `curl … \| bash`, `~/.local/bin/calendar-tui`)·`install.ps1`(윈도우, `irm … \| iex`, `%LOCALAPPDATA%\Programs\calendar-tui` + 사용자 PATH) |
 
-- UI는 `backend` 인터페이스(기간 조회 / 저장 / 삭제, 반복 범위 `span`)만 부른다. 나중에 Google API·CalDAV 구현체를 같은 자리에 붙인다.
-- 일정은 회차 단위(`event.occ`가 회차 키). 반복 규칙 펼치기는 백엔드가 한다.
+- UI는 `backend` 인터페이스(기간 조회 / 저장 / 삭제, 반복 범위 `span`)만 부른다. 구현체는 EventKit·구글·목업. CalDAV 등도 같은 자리에 붙인다.
+- 일정은 회차 단위(`event.occ`가 회차 키). 반복 규칙 펼치기는 백엔드가 한다. 백엔드가 회차를 다시 찾는 데 필요한 값은 `event.ref`에 둔다(구글: 원래 캘린더 ID + 회차 ID. 폼·이동은 그대로 넘기고 복제는 비운다).
 
 ## UI/UX 규칙 (사용자 지시)
 
@@ -124,7 +131,28 @@ README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·�
 - 하루 종일 일정 끝은 EventKit이 마지막 날 23:59:59로 준다 → 앱 안에선 마지막 날 0시로 바꾸고, 저장 때 되돌린다.
 - 구글 매주 일정은 시작 요일(BYDAY)을 넣어 보내므로, 시작일과 같은 요일·날짜·달 지정은 단순 반복으로 본다.
 - 달 단위 캐시. 변경 알림·포커스 복귀·`r`·저장 후·1시간 주기로 무효화(아래 "바깥 변경 반영").
-- 빌드: cgo(Objective-C) → Xcode 커맨드라인 도구 필요. 윈도우 빌드에선 빌드 태그로 목업만.
+- 빌드: cgo(Objective-C) → Xcode 커맨드라인 도구 필요. 맥 밖에선 빌드 태그로 빠지고(`backend_other.go`) 구글 백엔드를 쓴다.
+
+### 구글 캘린더 연동 (2026-10-26)
+
+윈도우엔 EventKit처럼 시스템 계정 일정을 앱에 주는 창구가 없어(WinRT `AppointmentStore`는 읽히지만 비어 있다 — 데이터를 채우던 "메일 및 일정" 앱이 종료됐고 새 Outlook은 채우지 않는다, 2026-10-26 이 PC에서 확인) 구글 캘린더 API에 직접 로그인한다. 맥에서도 고를 수 있다(사용자 결정: 맥은 둘 다, 설정으로).
+
+- **저장소 고르기**: `config.toml` `[backend] type` = `auto`(맥 eventkit, 그 밖 google) · `eventkit` · `google`. 맥에서 처음 실행(설정 파일이 아직 없음)하면 고르는 화면을 띄운다(`firstrun.go`, 사용자 지시). 이미 설정 파일이 있는 기존 사용자는 묻지 않고 auto(EventKit) — 동작이 바뀌지 않게. 윈도우는 고를 게 없어 바로 로그인.
+- **클라이언트 라이브러리를 쓰지 않는다**: `google.golang.org/api`는 의존성이 커서(바이너리·메모리, 이 앱의 목적이 가벼움) calendarList·events list/get/insert/put/delete/move만 `net/http` + JSON으로 부른다. OAuth는 `golang.org/x/oauth2`만(엔드포인트를 직접 적어 `oauth2/google` 패키지도 안 씀).
+- **로그인**: 데스크톱 앱 클라이언트 + 루프백(`http://127.0.0.1:<임의 포트>/`) + PKCE + state. `prompt=consent`로 갱신 토큰을 받는다. 디바이스 코드 방식은 캘린더 권한 미지원. 사용자가 동의 화면에서 캘린더 체크를 풀면(세분화된 동의) 토큰 scope를 보고 거절한다. 갱신이 `invalid_grant`면 "--login으로 다시 로그인" 안내.
+- **권한**: `https://www.googleapis.com/auth/calendar` 하나(목록·읽기·쓰기). 계정 이메일은 기본 캘린더 ID에서 얻어 추가 권한(email·openid)을 받지 않는다.
+- **토큰 보관**: `github.com/zalando/go-keyring`(맥 키체인은 `security` 명령, 윈도우 자격 증명 관리자 `calendar-tui:google`, 리눅스 Secret Service). 못 쓰면 설정 폴더 `google_token.json`(0600). 액세스 토큰이 바뀔 때마다 다시 저장(`savingSource`).
+- **OAuth 클라이언트 비밀값**: 데스크톱 앱 secret은 구글도 기밀로 보지 않지만(배포 바이너리에서 꺼낼 수 있음) GitHub 비밀값 검사에 걸리지 않게 저장소에 두지 않고 릴리스 때 시크릿에서 `-ldflags -X main.googleClientID/googleClientSecret`로 넣는다. 사용자는 설정 폴더 `google_client.json`(Cloud 콘솔에서 받은 그대로)으로 자기 클라이언트를 쓸 수 있다(기본 클라이언트보다 앞섬).
+- **Cloud 프로젝트**: zidell@gmail.com 계정 `calendar-tui`(ID `calendar-tui-512806`), Calendar API 켬, OAuth 클라이언트 "calendar-tui"(데스크톱 앱). 동의 화면은 외부·**프로덕션(미인증)**으로 게시(사용자 결정: 테스트 모드는 토큰 7일 만료). 미인증이라 "확인하지 않은 앱" 경고 + 누적 사용자 100명 한도. 브랜딩: 홈 `https://zidell.github.io/calendar-tui/`, 개인정보처리방침 `…/privacy.html`, 승인된 도메인 `zidell.github.io`. 사용자가 늘면 민감 권한 심사(무료: 도메인 확인·방침·시연 영상, 며칠~몇 주)를 받는다. Gmail 같은 제한 권한의 유료 보안 감사는 해당 없음. 예전 `Quickstart` 프로젝트(2019, 안 씀)는 2026-10-26 종료(삭제 대기).
+- **읽기**: 캘린더마다 동시에 `events.list?singleEvents=true`. 회차엔 반복 규칙이 없어, 회차가 있는 캘린더는 같은 기간 `singleEvents=false`로 원본 목록을 한 번 더 받아 RRULE로 반복 종류를 정한다(그래도 없는 원본은 하나씩 get). 단순 반복 판정은 EventKit과 같은 기준(`ruleKind`). 하루 종일 끝 날짜는 배타 → 마지막 날 0시. 알림: `useDefault`면 캘린더 기본 알림을 본다. 링크: `source.url`, 없으면 Meet(`hangoutLink`). 쓰기 가능 = 캘린더 accessRole owner·writer.
+- **화면을 멈추지 않는 캐시**: 네트워크 왕복을 Update 안에서 기다리면 달을 넘길 때·포커스가 돌아올 때마다 1~1.5초 멈춘다. 받아 둔 기간은 바로 돌려주고 뒤에서 다시 받아, 다르면 `storeChanges`(EventKit 변경 알림과 같은 길)로 다시 그린다. 처음 보는 기간만 기다린다. 달 단위면 앞뒤 달을 미리 받는다. 5초 안에 받은 건 다시 받지 않는다. 쓰기 뒤엔 캐시를 버린다(저장한 일정을 바로 찾아 커서를 옮기는 `commit` 때문에 다음 읽기는 기다려서 받음). 측정(2026-10-26, 윈도우, 캘린더 8개, 10월 일정 29개): 캘린더 목록 0.63~0.69초, 달 하나 0.78초(첫 연결 포함 4.5초) → 캐시 0초, 앞뒤 1년(검색) 0.9~1.1초.
+- **쓰기**: 새 일정은 insert. 있던 일정은 get한 원본 JSON(map)에 고친 칸만 덮어 put한다(참석자·회의 정보 등 모르는 칸 보존, `conferenceDataVersion=1`). 알림은 바뀌었을 때만 덮는다(기본 알림 쓰던 일정 보존). 반복 종류가 같으면 규칙을 그대로 둔다(끝·빠진 회차 보존). 캘린더를 바꾸면 move 후 put.
+- **반복 범위**: 이 일정만 = 회차 ID에 put/delete(삭제하면 구글이 빠진 회차로 둔다). 회차 하나만 다른 캘린더로 옮기기는 API가 못 해 오류. 이후 모두 = 첫 회차면 원본 전체, 중간이면 새 반복을 먼저 insert한 뒤(끊기가 실패해도 일정이 사라지지 않게) 원본 RRULE에서 COUNT·UNTIL을 빼고 `UNTIL=회차 1초 전(UTC)`(하루 종일은 전날 날짜)로 끊는다 — 구글 웹과 같은 방식. 사용자 지정 규칙을 이어받을 땐 COUNT·EXDATE는 버리고 UNTIL은 남긴다.
+- **알림 선택지**: 구글 알림은 시작 "전" 0~40320분만 받아, 하루 종일의 "당일 오전 9시"(0시 + 9시간)를 못 쓴다. 구글 백엔드면 하루 종일 선택지를 전날·1주 전 오전 9시로 바꾼다(`googleAllDayAlarms`). 하루 종일로 바꿀 때 기본 알림도 인덱스 대신 값(전날 9시)으로 고른다.
+
+### 글자 폭
+
+- 칸 수는 글자 묶음(grapheme) 단위로 센다(`widths` → `ansi.StringWidth`·`ansi.Truncate`, `cut`은 `uniseg`). 구글 "Weather for Seoul" 캘린더의 `☀️ 17°`처럼 이모지 표시 선택자(U+FE0F)가 붙은 글자는 터미널이 2칸으로 그리는데, 글자 하나씩 센 `runewidth`는 1칸이라 그 주의 세로선이 밀렸다(2026-10-26 윈도우 터미널에서 확인·수정). 모호폭 문자는 1칸 그대로.
 
 ### 설정 파일 (에이전트 접근성)
 
@@ -186,7 +214,7 @@ README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·�
 - 릴리스는 GitHub Actions가 만든다(사용자 지시, 2026-10-04: 미리 빌드한 릴리스가 사용자 맥 빌드보다 낫고, 릴리스 수고는 Actions로 없앤다). **main에 푸시하면 릴리스까지 자동이다(사용자 지시, 여러 번 반복됨 — 2026-10-06 자동화).** 마지막 `v*` 태그의 패치 번호를 하나 올려 그 커밋에 태그·릴리스를 만든다(`docs/`·`*.md`·`LICENSE`만 바뀐 푸시는 건너뜀). 따로 릴리스 단계를 두거나 "릴리스할까요?"라고 묻지 않는다. 부·주 버전을 올릴 때만 `scripts/release.sh vX.Y.0`(깨끗한 작업 트리·푸시된 main 확인 후 태그만 푸시). v0.1.0은 로컬에서 만들었다.
 - 릴리스는 유니버설(arm64 + x86_64): `CC="clang -arch x86_64"`로 cgo 교차 빌드 후 `lipo`(`release.yml`). 인텔 실기기 확인은 못 했다. 버전은 `-ldflags -X main.version`(`calendar-tui --version`).
 - 설치 스크립트 시험은 `TAR_URL=file://… BIN_DIR=… bash docs/install.sh`로 임시 폴더에.
-- 윈도우는 배포하지 않는다: 윈도우엔 EventKit처럼 시스템 계정 일정을 앱에 주는 창구가 사실상 없다(WinRT `AppointmentStore`는 패키지 신원이 필요하고, 데이터를 채우던 "메일 및 일정" 앱이 새 Outlook으로 바뀜 — 미확인 지식). 목업만 보이는 앱을 내놓지 않으려고 뺐다. 윈도우는 Google API·Graph 백엔드가 생기면 다시 본다.
+- 윈도우(2026-10-26부터): 구글 백엔드로 배포한다. 릴리스에 `calendar-tui-windows-{amd64,arm64}.zip`(cgo 없이 맥 러너에서 교차 빌드), 설치는 PowerShell `irm https://zidell.github.io/calendar-tui/install.ps1 | iex` → `%LOCALAPPDATA%\Programs\calendar-tui\calendar-tui.exe` + 사용자 PATH. 실행 중인 exe는 덮어쓸 수 없어 옛 파일 이름을 `.old`로 바꾸고 다음 설치 때 지운다. `install.ps1`의 문구는 ASCII만 쓴다(Windows PowerShell 5.1의 `irm`은 charset 없는 응답을 Latin-1로 읽어 한글이 깨진다). 시험: `ZIP_URL=file:///… BIN_DIR=…`. 윈도우 터미널(Windows Terminal)에서 DEC 2배 크기 제목·포커스 알림이 동작하는 것 확인(2026-10-26). 서명하지 않은 exe라 브라우저로 받으면 SmartScreen이 막을 수 있어 PowerShell 설치를 안내한다.
 
 ## 로드맵
 
@@ -194,7 +222,7 @@ README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·�
 
 UI는 그대로 두고 `backend` 구현체를 추가한다.
 
-- **Google Calendar API v3**: 데스크톱 앱 OAuth 클라이언트 ID/secret을 바이너리에 포함, 로컬 루프백으로 토큰 수신. 디바이스 코드 방식은 Calendar 스코프 미지원. 캘린더는 민감 권한이라 공개 배포 시 심사(미심사면 경고 + 100명 제한, 테스트 모드는 토큰 7일 만료). 기본 클라이언트 ID 내장 + 사용자 지정 허용. 실시간 반영은 주기적 재조회 + sync token.
+- **Google Calendar API v3**: 2026-10-26 구현(위 "구글 캘린더 연동"). 남은 것: 변경분만 받는 sync token(지금은 기간 통째로 다시 받기), 여러 구글 계정 동시 로그인(지금은 하나).
 - **iCloud**: CalDAV + 앱 암호(심사 불필요). Fastmail·Nextcloud도 거의 그대로.
 - **Outlook**: Microsoft Graph, 디바이스 코드 로그인 가능.
 - 반복 범위: Google API는 "이후 일정 모두" 옵션이 없어 기존 반복을 전날까지 `UNTIL`로 끊고 새 반복을 만든다(구글 웹도 동일).
@@ -202,4 +230,5 @@ UI는 그대로 두고 `backend` 구현체를 추가한다.
 
 ### 남은 일
 
-- 실제 구글 캘린더 쓰기 경로(추가·수정·삭제·반복 범위·알림·URL)는 사용자가 직접 확인 전(목업으로만 검증).
+- 실제 구글 캘린더 쓰기 경로(추가·수정·삭제·반복 범위·알림·URL)는 사용자가 직접 확인 전. EventKit은 목업으로만, 구글 백엔드는 가짜 서버 테스트(요청 순서·본문)로만 검증했다. 구글 읽기는 실제 계정으로 확인(2026-10-26).
+- 맥 첫 실행 저장소 고르기 화면(`firstrun.go`)과 맥에서의 구글 백엔드(키체인 저장)는 윈도우에서 코드만 작성, 맥 실기기 확인 전.

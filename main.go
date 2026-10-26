@@ -410,7 +410,7 @@ func (m model) detailAction(act int) (tea.Model, tea.Cmd) {
 		return m.push(mForm), cmd
 	case 1: // 복제: 이 회차를 반복 없는 새 일정으로. 캘린더가 읽기 전용이면 기본 캘린더로
 		e := m.detail
-		e.id, e.occ, e.repeat, e.repeatText = "", time.Time{}, repNone, ""
+		e.id, e.occ, e.ref, e.repeat, e.repeatText = "", time.Time{}, "", repNone, ""
 		if !e.writable {
 			e.calID = m.db.defaultCal().id
 		}
@@ -660,7 +660,9 @@ var version = "dev"
 
 func main() {
 	showVersion := flag.Bool("version", false, "버전을 출력하고 끝낸다")
-	useMock := flag.Bool("mock", false, "EventKit 대신 메모리 목업 일정 사용(설정 파일은 읽기만 함)")
+	useMock := flag.Bool("mock", false, "실제 캘린더 대신 메모리 목업 일정 사용(설정 파일은 읽기만 함)")
+	login := flag.Bool("login", false, "구글 계정에 (다시) 로그인하고 끝낸다(계정 바꾸기도 이것으로)")
+	logout := flag.Bool("logout", false, "보관한 구글 로그인을 지우고 끝낸다")
 	configPath := flag.Bool("config-path", false, "설정 파일(config.toml) 절대 경로를 출력하고 끝낸다. 파일이 아직 없으면 처음 실행할 때 만들어질 경로")
 	checkConfig := flag.Bool("check-config", false, "config.toml을 검사해 오류를 출력하고 끝낸다(정상이면 종료 코드 0)")
 	flag.Usage = usage
@@ -685,6 +687,21 @@ func main() {
 		}
 		fmt.Println("정상:", path)
 		return
+	case *logout:
+		googleLogout()
+		fmt.Println(L("구글 로그인을 지웠습니다.", "Signed out of Google."))
+		return
+	case *login:
+		loadSettings().apply() // 안내 문구 언어
+		cfg, err := oauthConfig()
+		if err == nil {
+			_, err = googleLogin(cfg)
+		}
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		return
 	}
 	cfg := loadSettings()
 	cfg.readOnly = *useMock // 목업은 설정을 읽기만 한다(실제 창 크기·표시 설정을 덮지 않게)
@@ -701,14 +718,18 @@ func main() {
 		followSystem = sd == termDark
 	}
 	cfg.apply()
+	if _, err := os.Stat(path); os.IsNotExist(err) && !*useMock && runtime.GOOS == "darwin" {
+		if cfg.Backend = chooseBackend(); cfg.Backend == "" {
+			return
+		}
+	}
 	var b backend = newMockBackend()
-	if !*useMock && runtime.GOOS == "darwin" {
-		ek, err := newEventKit()
-		if err != nil {
+	if !*useMock {
+		var err error
+		if b, err = openBackend(cfg.Backend); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		b = ek
 	}
 	m := newModel(b, cfg)
 	if i := slices.Index(viewNames, cfg.View); i >= 0 {
@@ -742,16 +763,28 @@ func main() {
 	}
 }
 
+// openBackend는 설정([backend] type)에 맞는 일정 저장소를 연다. auto는 맥이면 EventKit, 그 밖엔 구글.
+func openBackend(kind string) (backend, error) {
+	if kind == "eventkit" || (kind != "google" && runtime.GOOS == "darwin") {
+		return newEventKit()
+	}
+	return newGoogle()
+}
+
 func usage() {
-	fmt.Fprint(flag.CommandLine.Output(), `calendar-tui — 터미널 월간 캘린더 (macOS 캘린더 계정을 EventKit으로 읽고 쓴다)
+	fmt.Fprint(flag.CommandLine.Output(), `calendar-tui — 터미널 월간 캘린더
+  맥: 시스템에 등록한 캘린더 계정(EventKit). 윈도우 등: 구글 캘린더에 직접 로그인.
+  config.toml [backend] type으로 고른다(맥에서도 google 가능).
 
 사용: calendar-tui [옵션]
 
 설정:
-  사용자 설정은 config.toml 하나다(언어·테마·주 시작·시각 표기·고른 요일 최소 폭, 키 입력 로그,
+  사용자 설정은 config.toml 하나다(일정 저장소, 언어·테마·주 시작·시각 표기·고른 요일 최소 폭, 키 입력 로그,
   계정·캘린더 표시 여부). 항목마다 의미·허용값·기본값 주석이 붙어 있다.
-  위치는 calendar-tui --config-path 로 확인한다(맥 ~/Library/Application Support/calendar-tui/config.toml).
-  처음 실행할 때 만들어지고 맥에 등록된 계정·캘린더 목록이 채워진다.
+  위치는 calendar-tui --config-path 로 확인한다(맥 ~/Library/Application Support/calendar-tui/config.toml,
+  윈도우 %APPDATA%\calendar-tui\config.toml).
+  처음 실행할 때 만들어지고 계정·캘린더 목록이 채워진다.
+  구글 로그인 토큰은 OS 자격 증명 저장소에 둔다(맥 키체인·윈도우 자격 증명 관리자).
   [accounts]·[calendars]의 키는 ID, 값은 true(보임) / false(숨김), 줄 끝 주석이 이름이다.
   고쳐서 저장하면 실행 중인 앱이 바로 다시 읽는다. 검사: calendar-tui --check-config
   (잘못된 값이면 앱은 이전 값을 쓰고 화면 맨 아래에 오류를 띄운다. 앱 안 설정 화면도 같은 파일을 쓴다)
