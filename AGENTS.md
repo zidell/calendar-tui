@@ -17,7 +17,7 @@ README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·�
   go test .           # 빠른 추가·시각 해석·구글 변환·쓰기 요청(가짜 서버) 테스트
   ```
 - 필요한 것: Go. 맥은 Xcode 커맨드라인 도구도(cgo로 EventKit을 부른다). 윈도우·리눅스는 cgo 없이 빌드되고 EventKit 자리엔 안내 오류만 붙는다(`backend_other.go`).
-- 구글 OAuth 기본 클라이언트는 저장소에 없다. 개발 빌드에 넣으려면 Cloud 콘솔에서 받은 클라이언트 JSON을 `~/.calendar-tui-google-client.json`(커밋 금지)에 두면 `dev.sh`·`scripts/dev.ps1`이 `-ldflags -X`로 넣는다. 없으면 설정 폴더 `google_client.json`을 읽고, 그것도 없으면 구글 백엔드가 안내 오류를 낸다.
+- 구글 OAuth 기본 클라이언트는 저장소에 없다. 릴리스는 GitHub 시크릿에서 넣는데, 시크릿은 Actions 밖에서 읽을 수 없어 개발 빌드용 원본은 사용자 Google Drive `apps/calendar-tui/google_client.json`(Cloud 콘솔에서 받은 클라이언트 JSON 그대로, 커밋 금지)에 둔다(2026-10-26 사용자 결정: PC를 초기화해도 맥·윈도우 개발 빌드가 그대로 되게). `dev.sh`·`scripts/dev.ps1`이 `CALENDAR_TUI_CLIENT_JSON` → Drive → `~/.calendar-tui-google-client.json` 순서로 찾아 `-ldflags -X`로 넣는다. 다 없으면 앱은 설정 폴더 `google_client.json`을 읽고, 그것도 없으면 구글 백엔드가 안내 오류를 낸다. Drive 파일을 잃어도 Cloud 콘솔에서 같은 클라이언트에 비밀번호를 추가 발급하면 된다(기존 것과 함께 유효해 시크릿은 그대로).
 
 - 코드를 고친 뒤에는 묻지 말고 항상 `./dev.sh`(윈도우는 `scripts/dev.ps1`)를 실행해 사용자가 바로 확인할 수 있게 한다.
   - 윈도우(`scripts/dev.ps1`): 실행 중인 exe는 덮어쓸 수 없지만 이름은 바꿀 수 있어, 옛 `~/.local/bin/calendar-tui.exe`를 `calendar-tui.exe.<시각>.old`로 옮기고 새 빌드를 같은 자리에 둔다. 떠 있으면 앱이 감지해 같은 창에서 다시 시작한다(아래 "개발용 자동 재시작"). 떠 있지 않으면 이 exe를 가리키는 tuidock 앱(시작 메뉴 TUIDock 폴더 바로가기)으로, 없으면 Windows Terminal 새 창으로 띄운다. 개발 PC에선 tuidock 앱 "calendar-tui"(`%APPDATA%\tuidock\calendar-tui-dev`, 아이콘 `docs/icon.png`)를 작업 표시줄에 고정해 두었다(2026-10-26 사용자 지시: 이 윈도우에선 항상 최신 로컬 빌드를 바로 본다). 앱·창은 탐색기(바로가기)로 띄운다 — 에이전트 셸에서 바로 띄우면 `NO_COLOR` 등이 물려간다.
