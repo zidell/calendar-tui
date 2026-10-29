@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -332,11 +333,17 @@ func (m model) layout(h int) grid {
 // 월 제목 양옆의 이전·다음 달 꺽쇠. 클릭하면 달을 옮긴다(mouse.go).
 const titleGap = "   "
 
-// titleLayout은 2배 크기 제목 줄에서 제목 묶음("‹   2026년 10월   ›")의 시작 위치와 폭(2배 크기 칸 기준).
+// Linux 터미널은 DEC 2배 높이 줄을 지원하지 않을 수 있어 일반 제목 한 줄을 쓴다.
+func doubleHeightTitle() bool { return runtime.GOOS != "linux" }
+
+// titleLayout은 제목 묶음의 시작 위치와 폭(터미널이 보고하는 칸 기준).
 func (m model) titleLayout(total int) (title string, pad, fw int) {
 	title = monthTitle(m.cursor)
 	fw = 2 + 2*len(titleGap) + rw.StringWidth(title)
-	return title, max(0, (total/2-fw)/2), fw
+	if doubleHeightTitle() {
+		total /= 2
+	}
+	return title, max(0, (total-fw)/2), fw
 }
 
 // gridView는 제목·요일·달력을 h줄로 그린다.

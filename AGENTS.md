@@ -233,3 +233,12 @@ UI는 그대로 두고 `backend` 구현체를 추가한다.
 
 - 실제 구글 캘린더 쓰기 경로(추가·수정·삭제·반복 범위·알림·URL)는 사용자가 직접 확인 전. EventKit은 목업으로만, 구글 백엔드는 가짜 서버 테스트(요청 순서·본문)로만 검증했다. 구글 읽기는 실제 계정으로 확인(2026-10-26).
 - 맥 첫 실행 저장소 고르기 화면(`firstrun.go`)과 맥에서의 구글 백엔드(키체인 저장)는 윈도우에서 코드만 작성, 맥 실기기 확인 전.
+
+## OS별 인증 (2026-10-27 사용자 결정)
+
+- macOS는 EventKit, Windows·Linux는 Google OAuth를 사용한다. 첫 실행 저장소 선택 화면은 제거했다.
+- 기존 `[backend] type`은 읽기 호환용으로 남기되 OS별 선택이 우선한다.
+- Linux 개발 실행은 `dev.sh`에서 Konsole 또는 x-terminal-emulator를 사용한다.
+- Linux에서는 DEC 2배 높이 줄 미지원 터미널에서 제목이 두 번 보이지 않도록 월 제목·이동 화살표를 일반 크기 한 줄로 가운데 정렬한다. 제목 아래 한 줄은 여백으로 유지하고 클릭 좌표도 일반 칸 기준으로 맞춘다.
+
+- Linux Drive 오프라인 폴더: `~/GoogleDrive-Offline/apps/calendar-tui/google_client.json`. `dev.sh`는 이 파일도 찾아 OAuth 클라이언트를 포함한다.

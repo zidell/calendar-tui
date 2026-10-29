@@ -247,13 +247,14 @@ func (c *settings) renderConfig(cals []calendar) []byte {
 
 # ── 일정 저장소 ──
 [backend]
-# 어디의 일정을 쓸지. "auto" = 맥은 eventkit, 그 밖(윈도우 등)은 google / "eventkit" / "google". 기본값 "auto".
+# 저장소는 OS로 결정한다: macOS = EventKit, Windows·Linux = Google OAuth.
+# type은 이전 설정과의 호환용이며 저장소 선택에 영향을 주지 않는다.
 #   eventkit: 맥 시스템 설정 → 인터넷 계정에 등록한 계정(구글·iCloud 등). 맥에서만.
 #   google:   구글 계정에 직접 로그인(구글 캘린더 API). 처음 실행할 때 브라우저로 로그인한다.
 #             다시 로그인·계정 바꾸기: calendar-tui --login / 로그아웃: calendar-tui --logout
 #             직접 만든 OAuth 클라이언트를 쓰려면 Cloud 콘솔에서 받은 데스크톱 앱 클라이언트 JSON을
 #             이 폴더에 google_client.json 으로 둔다.
-# 바꾼 값은 앱을 다시 실행하면 적용된다.
+# macOS에서는 시스템 캘린더 접근 권한을 요청하고, Windows·Linux에서는 OAuth로 로그인한다.
 type = %q
 
 # ── 표시 ──

@@ -718,11 +718,7 @@ func main() {
 		followSystem = sd == termDark
 	}
 	cfg.apply()
-	if _, err := os.Stat(path); os.IsNotExist(err) && !*useMock && runtime.GOOS == "darwin" {
-		if cfg.Backend = chooseBackend(); cfg.Backend == "" {
-			return
-		}
-	}
+	cfg.Backend = platformBackend(runtime.GOOS)
 	var b backend = newMockBackend()
 	if !*useMock {
 		var err error
@@ -763,9 +759,17 @@ func main() {
 	}
 }
 
-// openBackend는 설정([backend] type)에 맞는 일정 저장소를 연다. auto는 맥이면 EventKit, 그 밖엔 구글.
-func openBackend(kind string) (backend, error) {
-	if kind == "eventkit" || (kind != "google" && runtime.GOOS == "darwin") {
+// platformBackend는 OS에 맞는 저장소를 고른다. 예전 backend 설정은 호환성을 위해 읽기만 한다.
+func platformBackend(goos string) string {
+	if goos == "darwin" {
+		return "eventkit"
+	}
+	return "google"
+}
+
+// openBackend는 OS에 맞는 일정 저장소를 연다.
+func openBackend(_ string) (backend, error) {
+	if platformBackend(runtime.GOOS) == "eventkit" {
 		return newEventKit()
 	}
 	return newGoogle()
@@ -774,7 +778,7 @@ func openBackend(kind string) (backend, error) {
 func usage() {
 	fmt.Fprint(flag.CommandLine.Output(), `calendar-tui — 터미널 월간 캘린더
   맥: 시스템에 등록한 캘린더 계정(EventKit). 윈도우 등: 구글 캘린더에 직접 로그인.
-  config.toml [backend] type으로 고른다(맥에서도 google 가능).
+  macOS는 EventKit, Windows·Linux는 Google OAuth를 사용한다.
 
 사용: calendar-tui [옵션]
 

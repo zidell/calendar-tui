@@ -47,6 +47,9 @@ func (m model) mainView(h int) string {
 func (m model) titleRows(total int) []string {
 	title, tpad, _ := m.titleLayout(total)
 	head := strings.Repeat(" ", tpad) + headerSt.Render("‹") + titleGap + titleSt.Render(title) + titleGap + headerSt.Render("›")
+	if !doubleHeightTitle() {
+		return []string{"", head, ""}
+	}
 	return []string{"", dhTop + head, dhBottom + head}
 }
 

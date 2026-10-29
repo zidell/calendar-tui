@@ -227,6 +227,9 @@ func (m model) helpKeyAt(x int) (tea.KeyMsg, bool) {
 func (m model) clickCal(x, y int) (tea.Model, tea.Cmd) {
 	g := m.layout(m.height - 1)
 	if y == 1 || y == 2 { // 2배 크기 제목 줄. Terminal은 이 줄의 가로 위치를 2배 크기 칸 단위로 준다(키 로그로 확인)
+		if y == 2 && !doubleHeightTitle() {
+			return m, nil
+		}
 		total := g.total
 		switch m.view {
 		case vAgenda:

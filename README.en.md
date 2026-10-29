@@ -2,17 +2,17 @@
 
 [한국어](README.md) · [English](README.en.md)
 
-A lightweight monthly calendar that runs in the terminal. On a Mac it reads and writes the Google and iCloud calendars already registered in macOS, or signs in to Google directly; on Windows it signs in to Google Calendar directly.
+A lightweight monthly calendar that runs in the terminal. On a Mac it reads and writes the Google and iCloud calendars already registered in macOS through EventKit; on Windows and Linux it signs in to Google Calendar directly.
 Built with Go + [Bubble Tea](https://github.com/charmbracelet/bubbletea) + Lip Gloss.
 
 ![calendar-tui screenshot](assets/screenshot.png)
 
 ## Requirements
 
-- macOS 14+ (tuned for Terminal.app) or Windows 10/11 (Windows Terminal recommended).
-- Where calendars come from (the backend) is one of two. On a Mac you choose on first launch; Windows uses Google.
+- macOS 14+ (tuned for Terminal.app) or Windows 10/11 (Windows Terminal recommended), or Linux.
+- The OS determines the backend: EventKit on macOS, Google OAuth on Windows and Linux.
   - **Accounts on this Mac (EventKit)**: add Google, iCloud, etc. in System Settings → Internet Accounts. You don't need to use the Apple Calendar app.
-  - **Sign in to Google directly**: sign in with your browser. Same on Mac and Windows.
+  - **Sign in to Google directly**: sign in through browser OAuth on Windows and Linux.
 
 ## Install
 
@@ -48,7 +48,7 @@ Source builds don't include a Google OAuth client. To use Google sign-in, add a 
 ## Run
 
 - Run `calendar-tui` in your terminal. It fills the window; `q` quits.
-- On a Mac, the first launch asks where calendars come from (`↑ ↓`, `Enter`). The choice is stored in `config.toml` `[backend] type`; change it there later. If you already have a settings file, it doesn't ask and keeps using the Mac accounts.
+- macOS requests EventKit access. Windows and Linux sign in through Google OAuth in the browser. There is no backend selection screen.
 
 ### Accounts on this Mac (EventKit)
 
@@ -146,7 +146,7 @@ In a tuidock app, `Cmd+A` also opens Quick Add, just like `a`. Use `a` in a regu
 
 - **Calendars**: turn calendars on and off, grouped by account (Google, iCloud, ...). Turning off an account hides all its calendars. New accounts and calendars are shown by default.
 - **Display**: language (auto, 한국어, English), theme (auto, dark, light), week start (Sunday, Monday), time format (24-hour, 12-hour), and the minimum width of the selected day column when narrow (in characters; 0 disables widening).
-- Settings file: `~/Library/Application Support/calendar-tui/config.toml` on a Mac, `%APPDATA%\calendar-tui\config.toml` on Windows (print the path with `calendar-tui --config-path`). `[backend]` picks where calendars come from (`auto`, `eventkit`, `google`; restart to apply), `[display]` holds display settings, `[debug]` diagnostics, and `[accounts]` / `[calendars]` have one `"ID" = true/false` line per account and calendar (the comment at the end of the line is its name). Every item has an explanatory comment. You can edit it directly; the running app re-reads it as soon as you save. Check it with `calendar-tui --check-config` (if it's invalid, the app keeps the previous values and shows the error at the bottom of the screen).
+- Settings file: `~/Library/Application Support/calendar-tui/config.toml` on a Mac, `%APPDATA%\calendar-tui\config.toml` on Windows, `~/.config/calendar-tui/config.toml` on Linux (print the path with `calendar-tui --config-path`). `[backend] type` is retained for compatibility; the OS determines the backend. `[display]` holds display settings, `[debug]` diagnostics, and `[accounts]` / `[calendars]` have one `"ID" = true/false` line per account and calendar (the comment at the end of the line is its name). Every item has an explanatory comment. You can edit it directly; the running app re-reads it as soon as you save. Check it with `calendar-tui --check-config` (if it's invalid, the app keeps the previous values and shows the error at the bottom of the screen).
 - The last view and last-used calendar are remembered automatically and kept separately in `state.json` in the same folder. An old `settings.json` is migrated on first run and kept as `.bak`.
 - Follows the [Agent Configuration Accessibility](https://github.com/zidell/agent-configuration-accessibility) convention so AI agents can find and change settings: `calendar-tui --help` and a comment on every item.
 

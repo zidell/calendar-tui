@@ -8,7 +8,7 @@ set -e
 cd "$(dirname "$0")"
 LDF=""
 CJ=""
-for f in "$CALENDAR_TUI_CLIENT_JSON" "$HOME"/Library/CloudStorage/GoogleDrive-*/*/GoogleDrive/apps/calendar-tui/google_client.json \
+for f in "$CALENDAR_TUI_CLIENT_JSON" "$HOME/GoogleDrive-Offline/apps/calendar-tui/google_client.json" "$HOME"/Library/CloudStorage/GoogleDrive-*/*/GoogleDrive/apps/calendar-tui/google_client.json \
          "$HOME/.calendar-tui-google-client.json"; do
   if [ -n "$f" ] && [ -f "$f" ]; then CJ="$f"; break; fi
 done
@@ -27,6 +27,14 @@ if [ -f dev.local.sh ]; then
   exec bash dev.local.sh "$BIN/calendar-tui"
 fi
 if ! pgrep -x calendar-tui >/dev/null; then
+  if [ "$(uname -s)" = "Darwin" ]; then
   osascript -e "tell application \"Terminal\" to do script \"exec '$BIN/calendar-tui'\"" \
             -e 'tell application "Terminal" to activate' >/dev/null
+  elif command -v konsole >/dev/null; then
+    konsole --separate -e "$BIN/calendar-tui" >/dev/null 2>&1 &
+  elif command -v x-terminal-emulator >/dev/null; then
+    x-terminal-emulator -e "$BIN/calendar-tui" >/dev/null 2>&1 &
+  else
+    echo "Installed: $BIN/calendar-tui"
+  fi
 fi

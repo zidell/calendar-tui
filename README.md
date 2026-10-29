@@ -2,17 +2,17 @@
 
 [한국어](README.md) · [English](README.en.md)
 
-터미널에서 도는 가벼운 월간 캘린더. 맥에선 macOS에 등록된 구글·iCloud 캘린더를 그대로 읽고 쓰거나 구글에 직접 로그인하고, 윈도우에선 구글 캘린더에 직접 로그인해 읽고 쓴다.
+터미널에서 도는 가벼운 월간 캘린더. 맥에선 macOS에 등록된 구글·iCloud 캘린더를 EventKit으로 읽고 쓰고, 윈도우·리눅스에선 구글 캘린더에 직접 로그인해 읽고 쓴다.
 Go + [Bubble Tea](https://github.com/charmbracelet/bubbletea) + Lip Gloss로 만들었다.
 
 ![calendar-tui 화면](assets/screenshot.png)
 
 ## 필요한 것
 
-- macOS 14 이상(Terminal.app 기준으로 다듬었다) 또는 Windows 10·11(Windows Terminal 권장).
-- 캘린더를 가져오는 곳(일정 저장소)은 둘 중 하나다. 맥은 처음 실행할 때 고르고, 윈도우는 구글뿐이다.
+- macOS 14 이상(Terminal.app 기준으로 다듬었다) 또는 Windows 10·11(Windows Terminal 권장), Linux.
+- 일정 저장소는 OS로 결정한다. macOS는 EventKit, Windows·Linux는 Google OAuth를 쓴다.
   - **맥에 등록한 계정(EventKit)**: 시스템 설정 → 인터넷 계정에 구글·iCloud 등을 추가해 둔다. Apple 캘린더 앱을 쓸 필요는 없다.
-  - **구글 계정에 직접 로그인**: 브라우저로 로그인한다. 맥·윈도우 같은 방식.
+  - **구글 계정에 직접 로그인**: Windows·Linux에서 브라우저로 OAuth 로그인한다.
 
 ## 설치
 
@@ -48,7 +48,7 @@ cd calendar-tui && go build -o calendar-tui . && mv calendar-tui ~/.local/bin/
 ## 실행
 
 - 터미널에서 `calendar-tui`. 화면을 꽉 채워 그리고, `q`로 끝낸다.
-- 맥에서 처음 실행하면 캘린더를 어디서 가져올지 고르는 화면이 뜬다(`↑ ↓`·`Enter`). 고른 값은 `config.toml` `[backend] type`에 남고, 나중에 거기서 바꾼다. 원래 쓰던 설정 파일이 있으면 묻지 않고 맥 계정을 쓴다.
+- macOS는 EventKit 접근 권한을 요청하고, Windows·Linux는 브라우저에서 Google OAuth로 로그인한다. 저장소 선택 화면은 없다.
 
 ### 맥에 등록한 계정(EventKit)
 
@@ -146,7 +146,7 @@ tuidock 앱에서 실행하면 `Cmd+A`도 `a`와 같이 빠른 추가를 연다.
 
 - **캘린더 선택**: 계정(구글·iCloud …)마다 그 아래 캘린더를 켜고 끈다. 계정을 끄면 그 계정의 캘린더가 모두 숨는다. 새로 생긴 계정·캘린더는 기본으로 보인다.
 - **표시**: 언어(자동·한국어·English), 테마(자동·어두운 배경·밝은 배경), 주 시작(일요일·월요일), 시각 표기(24시간·12시간), 좁을 때 고른 요일 최소 폭(영문 기준 글자 수, 0이면 넓히지 않음).
-- 설정 파일: 맥 `~/Library/Application Support/calendar-tui/config.toml`, 윈도우 `%APPDATA%\calendar-tui\config.toml`(경로 확인: `calendar-tui --config-path`). `[backend]`에 일정 저장소(`auto`·`eventkit`·`google`, 바꾸면 다시 실행), `[display]`에 표시 설정, `[accounts]`·`[calendars]`에 계정·캘린더마다 `"ID" = true/false` 한 줄(줄 끝 주석이 이름). 항목마다 설명 주석이 있다. 직접 고쳐도 되고, 저장하면 실행 중인 앱이 바로 다시 읽는다. 검사: `calendar-tui --check-config`(잘못되면 앱은 이전 값을 쓰고 화면 맨 아래에 오류).
+- 설정 파일: 맥 `~/Library/Application Support/calendar-tui/config.toml`, 윈도우 `%APPDATA%\calendar-tui\config.toml`(경로 확인: `calendar-tui --config-path`). `[backend] type`은 이전 설정과의 호환용이며 저장소는 OS로 결정한다. `[display]`에 표시 설정, `[accounts]`·`[calendars]`에 계정·캘린더마다 `"ID" = true/false` 한 줄(줄 끝 주석이 이름). 항목마다 설명 주석이 있다. 직접 고쳐도 되고, 저장하면 실행 중인 앱이 바로 다시 읽는다. 검사: `calendar-tui --check-config`(잘못되면 앱은 이전 값을 쓰고 화면 맨 아래에 오류).
 - 마지막 보기·마지막으로 쓴 캘린더는 앱이 저절로 기억하는 값이라 같은 폴더 `state.json`에 따로 둔다. 예전 `settings.json`은 처음 실행 때 옮기고 `.bak`으로 남긴다.
 - AI 에이전트가 설정을 찾아 고칠 수 있게 [Agent Configuration Accessibility](https://github.com/zidell/agent-configuration-accessibility) 컨벤션을 따른다: `calendar-tui --help`, 항목마다 설명 주석.
 
