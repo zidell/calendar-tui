@@ -39,4 +39,12 @@ if ($app) {
     $lnk = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\TUIDock\$name.lnk"
     if (Test-Path $lnk) { Start-Process explorer.exe -ArgumentList "`"$lnk`""; exit 0 }
 }
-Start-Process wt.exe -ArgumentList '-w', 'new', $exe
+# Explorer owns the new terminal, outside the agent's Windows job object.
+$shortcut = Join-Path $bin 'calendar-tui-terminal.lnk'
+$shell = New-Object -ComObject WScript.Shell
+$link = $shell.CreateShortcut($shortcut)
+$link.TargetPath = (Get-Command wt.exe -ErrorAction Stop).Source
+$link.Arguments = '-w new "' + $exe + '"'
+$link.WorkingDirectory = $bin
+$link.Save()
+Start-Process explorer.exe -ArgumentList ('"' + $shortcut + '"')

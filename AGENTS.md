@@ -6,6 +6,14 @@
 
 ## 작업 방식
 
+- 독립 앱의 빌드 후 실행은 에이전트·빌드 터미널의 프로세스 그룹/cgroup 밖에서 한다.
+  Linux `dev.sh`는 `scripts/launch-linux.sh`로 전용 터미널을 별도 사용자 systemd 서비스에
+  띄운다(`dev.local.sh`가 있으면 그 실행기도 서비스 안에서 호출). macOS는 Terminal.app,
+  Windows는 탐색기가 여는 tuidock/Windows Terminal 바로가기를 사용한다. 직접 agent exec,
+  셸 백그라운드·`nohup`·`setsid`로 대신하지 않는다. 호출 세션이 끝나도 유지되는지 검증한다.
+  로그인 자동 시작은 켜지 않는다. `./dev.sh --build-only`는 `dist/calendar-tui`만 만들며
+  실행 중인 앱이 감지하는 바이너리를 교체하지 않는다.
+
 README(`README.md`·`README.en.md`)에는 사용법만 둔다(설치·실행·화면·조작·설정). 빌드·테스트·개발 실행·설계는 이 파일에 둔다. 두 README는 같은 내용으로 맞춘다.
 
 - 빌드와 실행(개발):
@@ -238,7 +246,7 @@ UI는 그대로 두고 `backend` 구현체를 추가한다.
 
 - macOS는 EventKit, Windows·Linux는 Google OAuth를 사용한다. 첫 실행 저장소 선택 화면은 제거했다.
 - 기존 `[backend] type`은 읽기 호환용으로 남기되 OS별 선택이 우선한다.
-- Linux 개발 실행은 `dev.sh`에서 Konsole 또는 x-terminal-emulator를 사용한다.
+- Linux 개발 실행은 `dev.sh`에서 Ghostty(별도 인스턴스) 또는 Konsole을 사용자 systemd 서비스로 실행한다.
 - Linux에서는 DEC 2배 높이 줄 미지원 터미널에서 제목이 두 번 보이지 않도록 월 제목·이동 화살표를 일반 크기 한 줄로 가운데 정렬한다. 제목 아래 한 줄은 여백으로 유지하고 클릭 좌표도 일반 칸 기준으로 맞춘다.
 
 - Linux Drive 오프라인 폴더: `~/GoogleDrive-Offline/apps/calendar-tui/google_client.json`. `dev.sh`는 이 파일도 찾아 OAuth 클라이언트를 포함한다.
