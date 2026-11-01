@@ -322,7 +322,7 @@ func (m model) updateCal(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "s":
 		m.menuSel = 0
 		return m.push(mSettings), nil
-	case "a":
+	case "a", "ctrl+a":
 		return m.openQuick()
 	case "/":
 		return m.openSearch()
@@ -341,7 +341,7 @@ func (m model) updateDay(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.daySel = max(0, m.daySel-1)
 	case "down", "j":
 		m.daySel = min(len(evs), m.daySel+1)
-	case "a", "n":
+	case "a", "ctrl+a", "n":
 		return m.openNewForm()
 	case "enter":
 		if m.daySel == 0 {
