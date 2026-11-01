@@ -223,6 +223,7 @@ func (m model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		logKey(msg, m.top())
+		msg = m.shortcutKey(msg)
 		if msg.String() == "ctrl+c" {
 			return m, tea.Quit
 		}
@@ -322,7 +323,7 @@ func (m model) updateCal(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "s":
 		m.menuSel = 0
 		return m.push(mSettings), nil
-	case "a", "ctrl+a":
+	case "a":
 		return m.openQuick()
 	case "/":
 		return m.openSearch()
@@ -341,7 +342,7 @@ func (m model) updateDay(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.daySel = max(0, m.daySel-1)
 	case "down", "j":
 		m.daySel = min(len(evs), m.daySel+1)
-	case "a", "ctrl+a", "n":
+	case "a", "n":
 		return m.openNewForm()
 	case "enter":
 		if m.daySel == 0 {

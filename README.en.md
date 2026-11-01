@@ -89,7 +89,7 @@ Release binaries include a default OAuth client (not yet verified by Google, so 
 - **Quick add** (`a`): type one line, e.g. `tomorrow 3pm lunch`, `fri 9:30am standup for 15m`, `oct 20 all day offsite`, or in Korean `내일 오후 3시 치과`, `3일후 오후 3시 회의` (also `3일 후`, `3일 뒤`, `2주 후`), `금요일 10:30-12 리뷰`. No date means the selected day, no time means all day, no length means one hour. Hours 1–7 without am/pm are read as pm. Check the preview and press `Enter` (or `[Add]`), or `[Details]` to continue in the full form.
 - **Search** (`/`): titles, locations and notes of events within a year of today. Upcoming events first, then past ones. Picking a result goes to that day and opens its details; `esc` returns to the search.
 - Windows that change something only commit when you press their button (`[Save]`, `[Delete]`, `[Go]`, `[Add]`). `esc` always closes without changing anything.
-- With a Korean (or other composing) input method active, single-letter shortcuts are held by the input method and never reach the app. Use `Ctrl+A` to open Quick Add even with Korean input active; switch to English for other single-letter shortcuts. The app doesn't change your input source.
+- With a Korean (or other composing) input method active, single-letter shortcuts are held by the input method and never reach the app. Single-letter English shortcuts also work with `Ctrl` (e.g. `Ctrl+A` for Quick Add, `Ctrl+S` for Settings, `Ctrl+G` to go to a month). The app doesn't change your input source.
 - The UI language is Korean or English (follows the system language), and the colors adapt to dark or light terminal backgrounds (change both in Settings → Display).
 
 ## Keys
@@ -127,7 +127,7 @@ Release binaries include a default OAuth client (not yet verified by Google, so 
 | Settings › Calendars | `Space` `Enter` | Toggle (applied with `[Save]` or `Ctrl+S`) |
 | Settings › Display | `← →` `Space` | Change a value (applied with `[Save]` or `Ctrl+S`) |
 
-In a tuidock app, `Cmd+A` also opens Quick Add, just like `a`. Use `a` or `Ctrl+A` in a regular terminal.
+In a tuidock app, `Cmd+A` also opens Quick Add, just like `a`. In a regular terminal, single-letter English shortcuts also work with `Ctrl`. Text editing keys and `Ctrl+S` to save forms/settings keep their existing behavior. `Ctrl+C` quits; `Ctrl+M` is Enter. Shortcuts assigned by the terminal itself are handled by the terminal first.
 
 ### Mouse
 
